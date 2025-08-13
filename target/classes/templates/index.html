@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mus Villamantilla</title>
+    <title>Torneo de Mus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -13,7 +13,7 @@
         <div class="row mb-4">
             <div class="col-12">
                 <h1 class="text-center text-primary">
-                    <i class="fas fa-trophy"></i> Mus Villamantilla
+                    <i class="fas fa-trophy"></i> Torneo de Mus
                 </h1>
                 <hr>
             </div>
@@ -89,7 +89,7 @@
                             <div class="mb-3">
                                 <label for="nombre" class="form-label">Nombre de la Pareja</label>
                                 <input type="text" class="form-control" id="nombre" name="nombre" 
-                                       required placeholder="Ej: Jauma y Vilela">
+                                       required placeholder="Ej: Los Tigres">
                             </div>
                             <button type="submit" class="btn btn-primary" th:disabled="${torneoTerminado != null and torneoTerminado == true}">
                                 <i class="fas fa-plus"></i> Registrar Pareja
@@ -176,10 +176,10 @@
         <div class="row mb-4">
             <div class="col-12 text-center">
                 <a th:href="@{/clasificacion}" class="btn btn-info me-2">
-                    <i class="fas fa-list-ol"></i>  Clasificación
+                    <i class="fas fa-list-ol"></i> Ver Clasificación
                 </a>
                 <a th:href="@{/historial}" class="btn btn-secondary">
-                    <i class="fas fa-history"></i> Historial
+                    <i class="fas fa-history"></i> Ver Historial
                 </a>
             </div>
         </div>
