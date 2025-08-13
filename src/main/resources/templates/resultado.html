@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Resultado - Torneo de Mus</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-center text-primary">
+                    <i class="fas fa-edit"></i> Registrar Resultado
+                </h1>
+                <hr>
+            </div>
+        </div>
+
+        <!-- Información del enfrentamiento -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Detalles del Enfrentamiento</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Pareja 1:</h6>
+                                <span class="badge bg-primary fs-6" th:text="${enfrentamiento.pareja1.nombre}"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Pareja 2:</h6>
+                                <span class="badge bg-secondary fs-6" th:text="${enfrentamiento.pareja2.nombre}"></span>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <h6>Ronda:</h6>
+                                <span class="badge bg-info" th:text="${enfrentamiento.ronda}"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>ID Enfrentamiento:</h6>
+                                <span class="badge bg-dark" th:text="${enfrentamiento.id}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario para registrar resultado -->
+        <div class="row mb-4">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-trophy"></i> Seleccionar Ganador</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/resultado}" method="post">
+                            <input type="hidden" name="enfrentamientoId" th:value="${enfrentamiento.id}">
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">¿Quién ganó este enfrentamiento?</label>
+                                <div class="d-grid gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="ganadorId" 
+                                               th:value="${enfrentamiento.pareja1.id}" id="ganador1" required>
+                                        <label class="form-check-label" for="ganador1">
+                                            <span class="badge bg-primary fs-5" th:text="${enfrentamiento.pareja1.nombre}"></span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="ganadorId" 
+                                               th:value="${enfrentamiento.pareja2.id}" id="ganador2" required>
+                                        <label class="form-check-label" for="ganador2">
+                                            <span class="badge bg-secondary fs-5" th:text="${enfrentamiento.pareja2.nombre}"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-save"></i> Confirmar Resultado
+                                </button>
+                                <a th:href="@{/}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Volver al Inicio
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advertencia -->
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Importante:</strong> Una vez confirmado el resultado, no se podrá modificar. 
+                    La pareja perdedora recibirá una derrota automáticamente.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

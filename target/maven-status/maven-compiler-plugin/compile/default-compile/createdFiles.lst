@@ -1,0 +1,8 @@
+torneomus\repository\EnfrentamientoRepository.class
+torneomus\service\TorneoService.class
+torneomus\config\DataLoader.class
+torneomus\repository\ParejaRepository.class
+torneomus\Main.class
+torneomus\controller\TorneoController.class
+torneomus\entity\Pareja.class
+torneomus\entity\Enfrentamiento.class

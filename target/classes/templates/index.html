@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mus Villamantilla</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-center text-primary">
+                    <i class="fas fa-trophy"></i> Mus Villamantilla
+                </h1>
+                <hr>
+            </div>
+        </div>
+
+        <!-- Mensajes de alerta -->
+        <div th:if="${mensaje}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> <span th:text="${mensaje}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Estado del torneo -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Ronda Actual</h5>
+                        <h2 class="text-primary" th:text="${estado != null and estado.rondaActual != null ? estado.rondaActual : 0}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Parejas Activas</h5>
+                        <h2 class="text-success" th:text="${estado != null and estado.parejasActivasCount != null ? estado.parejasActivasCount : 0}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Parejas</h5>
+                        <h2 class="text-info" th:text="${estado != null and estado.totalParejas != null ? estado.totalParejas : 0}">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Estado</h5>
+                        <h2 class="text-warning" th:if="${torneoTerminado}">Finalizado</h2>
+                        <h2 class="text-success" th:unless="${torneoTerminado}">En Curso</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pareja ganadora si el torneo terminó -->
+        <div th:if="${torneoTerminado != null and torneoTerminado == true and parejaGanadora != null}" class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-success text-center">
+                    <h3><i class="fas fa-crown"></i> ¡TORNEO FINALIZADO!</h3>
+                    <h4>Ganador: <span class="text-primary" th:text="${parejaGanadora.nombre}"></span></h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario para registrar pareja -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-plus"></i> Registrar Nueva Pareja</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/pareja/registrar}" method="post">
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">Nombre de la Pareja</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       required placeholder="Ej: Jauma y Vilela">
+                            </div>
+                            <button type="submit" class="btn btn-primary" th:disabled="${torneoTerminado != null and torneoTerminado == true}">
+                                <i class="fas fa-plus"></i> Registrar Pareja
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botón para generar nueva ronda -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-play"></i> Generar Nueva Ronda</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-muted">Genera los emparejamientos para la siguiente ronda</p>
+                        <div class="mb-2" th:if="${estado != null and estado.pendientesRondaActual != null and estado.pendientesRondaActual > 0}">
+                            <span class="badge bg-warning text-dark">
+                                Tienes <span th:text="${estado.pendientesRondaActual}"></span> enfrentamiento(s) pendiente(s)
+                            </span>
+                        </div>
+                        <a th:href="@{/ronda/nueva}" class="btn btn-success btn-lg" 
+                           th:disabled="${!(estado != null and estado.puedeGenerarNuevaRonda != null and estado.puedeGenerarNuevaRonda) or (torneoTerminado != null and torneoTerminado == true)}">
+                            <i class="fas fa-forward"></i> Generar Ronda
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enfrentamientos de la ronda actual -->
+        <div class="row mb-4" th:if="${estado != null and estado.enfrentamientosActuales != null and !estado.enfrentamientosActuales.empty}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-gamepad"></i> Enfrentamientos Ronda <span th:text="${estado != null and estado.rondaActual != null ? estado.rondaActual : 0}">0</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div th:each="enfrentamiento : ${estado.enfrentamientosActuales}" 
+                                 class="col-md-6 mb-3">
+                                <div class="card border-primary" th:classappend="${(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id)) ? 'border-warning' : 'border-primary'}">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title" th:if="${enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id)}">
+                                            Quien libra · Ronda <span th:text="${enfrentamiento.ronda}"></span>
+                                        </h6>
+                                        <h6 class="card-title" th:unless="${enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id)}">
+                                            Enfrentamiento #<span th:text="${enfrentamiento.id}"></span>
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <span class="badge bg-primary" th:text="${enfrentamiento.pareja1 != null ? enfrentamiento.pareja1.nombre : '—'}"></span>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="badge" th:classappend="${(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id)) ? 'bg-warning text-dark' : 'bg-secondary'}"
+                                                      th:text="${(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id)) ? 'Descanso' : enfrentamiento.pareja2.nombre}"></span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3" th:if="${!(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id))}">
+                                            <span th:if="${enfrentamiento.jugado}" class="badge bg-success">
+                                                <i class="fas fa-check"></i> Jugado
+                                            </span>
+                                            <span th:unless="${enfrentamiento.jugado}" class="badge bg-warning">
+                                                <i class="fas fa-clock"></i> Pendiente
+                                            </span>
+                                        </div>
+                                        <div class="mt-2" th:if="${!enfrentamiento.jugado and !(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id))}">
+                                            <a th:href="@{/resultado/{id}(id=${enfrentamiento.id})}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i> Registrar Resultado
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegación -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <a th:href="@{/clasificacion}" class="btn btn-info me-2">
+                    <i class="fas fa-list-ol"></i>  Clasificación
+                </a>
+                <a th:href="@{/historial}" class="btn btn-secondary">
+                    <i class="fas fa-history"></i> Historial
+                </a>
+            </div>
+        </div>
+
+        <!-- Acciones de torneo -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <form th:action="@{/torneo/reiniciar}" method="post" onsubmit="return confirm('¿Seguro que quieres iniciar un nuevo torneo? Se borrarán todas las parejas y enfrentamientos.');" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-trash"></i> Nuevo Torneo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
