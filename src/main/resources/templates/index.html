@@ -163,6 +163,12 @@
                                                 <i class="fas fa-edit"></i> Registrar Resultado
                                             </a>
                                         </div>
+                                        <div class="mt-2" th:if="${enfrentamiento.jugado and !(enfrentamiento.pareja2 == null or (enfrentamiento.pareja1 != null and enfrentamiento.pareja2 != null and enfrentamiento.pareja1.id == enfrentamiento.pareja2.id))}">
+                                            <a th:href="@{/resultado/{id}(id=${enfrentamiento.id})}" 
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-pen"></i> Editar Resultado
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

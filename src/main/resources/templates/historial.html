@@ -78,6 +78,11 @@
 													<i class="fas fa-edit"></i> Registrar Resultado
 												</a>
 											</div>
+											<div th:if="${enfrentamiento.jugado}" class="mt-2">
+												<a th:href="@{/resultado/{id}(id=${enfrentamiento.id})}" class="btn btn-sm btn-outline-secondary">
+													<i class="fas fa-pen"></i> Editar Resultado
+												</a>
+											</div>
 										</div>
 									</div>
 								</div>
