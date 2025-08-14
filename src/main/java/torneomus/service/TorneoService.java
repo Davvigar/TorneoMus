@@ -1,18 +1,22 @@
 package torneomus.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import torneomus.entity.Enfrentamiento;
 import torneomus.entity.Pareja;
 import torneomus.repository.EnfrentamientoRepository;
 import torneomus.repository.ParejaRepository;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class TorneoService {
@@ -114,37 +118,74 @@ public class TorneoService {
         return candidatos.isEmpty() ? null : candidatos.get(0);
     }
     
-    // Registrar el resultado de un enfrentamiento
+    // Registrar o editar el resultado de un enfrentamiento
     @Transactional
     public void registrarResultado(Long enfrentamientoId, Long ganadorId) {
         Enfrentamiento enfrentamiento = enfrentamientoRepository.findById(enfrentamientoId)
                 .orElseThrow(() -> new RuntimeException("Enfrentamiento no encontrado"));
-        
-        if (enfrentamiento.isJugado()) {
-            throw new RuntimeException("Este enfrentamiento ya fue jugado");
+
+        // No permitir operar sobre descansos
+        boolean esDescanso = false;
+        try {
+            esDescanso = enfrentamiento.isDescanso();
+        } catch (Exception ignored) {}
+        if (esDescanso) {
+            throw new RuntimeException("Este enfrentamiento es un descanso y no admite resultado");
         }
-        
-        Pareja ganador = parejaRepository.findById(ganadorId)
+
+        Pareja nuevoGanador = parejaRepository.findById(ganadorId)
                 .orElseThrow(() -> new RuntimeException("Pareja ganadora no encontrada"));
-        
-        if (!enfrentamiento.involucraPareja(ganador)) {
+
+        if (!enfrentamiento.involucraPareja(nuevoGanador)) {
             throw new RuntimeException("La pareja ganadora no participa en este enfrentamiento");
         }
-        
-        enfrentamiento.setGanador(ganador);
-        enfrentamientoRepository.save(enfrentamiento);
-        
-        // Actualizar derrotas del perdedor y aplicar eliminación a partir de ronda 3
-        Pareja perdedor = enfrentamiento.getPerdedor();
-        perdedor.agregarDerrota();
-        int rondaDeEsteEnfrentamiento = enfrentamiento.getRonda();
-        if (rondaDeEsteEnfrentamiento >= 3 && perdedor.getDerrotas() >= 2) {
-            perdedor.setEliminada(true);
-            log.info("Pareja {} eliminada (derrotas: {}, ronda: {})", perdedor.getNombre(), perdedor.getDerrotas(), rondaDeEsteEnfrentamiento);
+
+        // Si ya había un ganador y es el mismo, no hacemos nada
+        Pareja ganadorAnterior = enfrentamiento.getGanador();
+        if (ganadorAnterior != null && ganadorAnterior.getId().equals(nuevoGanador.getId())) {
+            return;
         }
-        parejaRepository.save(perdedor);
-        log.info("Resultado registrado. Ganador: {}, Perdedor: {} (derrotas: {})",
-                ganador.getNombre(), perdedor.getNombre(), perdedor.getDerrotas());
+
+        // Deshacer efecto anterior si existía
+        if (ganadorAnterior != null) {
+            Pareja perdedorAnterior = ganadorAnterior.equals(enfrentamiento.getPareja1())
+                    ? enfrentamiento.getPareja2() : enfrentamiento.getPareja1();
+            if (perdedorAnterior != null) {
+                int derrotas = Math.max(0, perdedorAnterior.getDerrotas() - 1);
+                perdedorAnterior.setDerrotas(derrotas);
+                if (derrotas < 2) {
+                    perdedorAnterior.setEliminada(false);
+                }
+                parejaRepository.save(perdedorAnterior);
+            }
+        }
+
+        // Aplicar nuevo ganador
+        enfrentamiento.setGanador(nuevoGanador);
+        enfrentamiento.setJugado(true);
+        enfrentamientoRepository.save(enfrentamiento);
+
+        // Aplicar derrota al nuevo perdedor
+        Pareja nuevoPerdedor = nuevoGanador.equals(enfrentamiento.getPareja1())
+                ? enfrentamiento.getPareja2() : enfrentamiento.getPareja1();
+        if (nuevoPerdedor != null) {
+            nuevoPerdedor.agregarDerrota();
+            int rondaDeEsteEnfrentamiento = enfrentamiento.getRonda();
+            if (rondaDeEsteEnfrentamiento < 3 && nuevoPerdedor.getDerrotas() >= 2) {
+                // En rondas 1-2 no eliminamos automáticamente
+                nuevoPerdedor.setEliminada(false);
+            }
+            if (rondaDeEsteEnfrentamiento >= 3 && nuevoPerdedor.getDerrotas() >= 2) {
+                nuevoPerdedor.setEliminada(true);
+            }
+            parejaRepository.save(nuevoPerdedor);
+        }
+    }
+
+    // Obtener enfrentamiento por id
+    public Enfrentamiento getEnfrentamiento(Long id) {
+        return enfrentamientoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enfrentamiento no encontrado"));
     }
     
     // Obtener el estado actual del torneo

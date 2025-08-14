@@ -23,8 +23,11 @@
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5><i class="fas fa-info-circle"></i> Detalles del Enfrentamiento</h5>
+                        <span th:if="${enfrentamiento.ganador != null}" class="badge bg-warning text-dark">
+                            Editando resultado existente
+                        </span>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -68,14 +71,16 @@
                                 <div class="d-grid gap-3">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="ganadorId" 
-                                               th:value="${enfrentamiento.pareja1.id}" id="ganador1" required>
+                                               th:value="${enfrentamiento.pareja1.id}" id="ganador1" required
+                                               th:checked="${enfrentamiento.ganador != null and enfrentamiento.ganador.id == enfrentamiento.pareja1.id}">
                                         <label class="form-check-label" for="ganador1">
                                             <span class="badge bg-primary fs-5" th:text="${enfrentamiento.pareja1.nombre}"></span>
                                         </label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="ganadorId" 
-                                               th:value="${enfrentamiento.pareja2.id}" id="ganador2" required>
+                                               th:value="${enfrentamiento.pareja2.id}" id="ganador2" required
+                                               th:checked="${enfrentamiento.ganador != null and enfrentamiento.ganador.id == enfrentamiento.pareja2.id}">
                                         <label class="form-check-label" for="ganador2">
                                             <span class="badge bg-secondary fs-5" th:text="${enfrentamiento.pareja2.nombre}"></span>
                                         </label>
@@ -85,7 +90,7 @@
                             
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-save"></i> Confirmar Resultado
+                                    <i class="fas fa-save"></i> Guardar Resultado
                                 </button>
                                 <a th:href="@{/}" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left"></i> Volver al Inicio
@@ -100,10 +105,9 @@
         <!-- Advertencia -->
         <div class="row">
             <div class="col-12">
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Importante:</strong> Una vez confirmado el resultado, no se podrá modificar. 
-                    La pareja perdedora recibirá una derrota automáticamente.
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Puedes volver a esta pantalla en cualquier momento para corregir un resultado. El sistema actualizará las derrotas automáticamente.
                 </div>
             </div>
         </div>
