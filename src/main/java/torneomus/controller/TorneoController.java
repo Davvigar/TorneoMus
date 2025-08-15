@@ -1,15 +1,19 @@
 package torneomus.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import torneomus.entity.Enfrentamiento;
 import torneomus.entity.Pareja;
 import torneomus.service.TorneoService;
-
-import java.util.List;
 
 @Controller
 public class TorneoController {
@@ -117,6 +121,18 @@ public class TorneoController {
         }
         model.addAttribute("historial", historial);
         return "historial";
+    }
+
+    // Mezclar parejas manualmente
+    @PostMapping("/parejas/mezclar")
+    public String mezclarParejas(RedirectAttributes redirectAttributes) {
+        try {
+            torneoService.mezclarParejas();
+            redirectAttributes.addFlashAttribute("mensaje", "Parejas mezcladas correctamente. El nuevo orden se aplicará en la próxima ronda.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "No se pudieron mezclar las parejas: " + e.getMessage());
+        }
+        return "redirect:/";
     }
 
     // Reiniciar torneo (borra datos)

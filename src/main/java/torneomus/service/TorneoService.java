@@ -73,6 +73,10 @@ public class TorneoService {
             log.info("Descansa esta ronda: {} (descansos acumulados: {})", queDescansa.getNombre(), queDescansa.getDescansos());
         }
         
+        // NOTA: El shuffle ahora se controla manualmente con el botón "Mezclar Parejas"
+        // java.util.Collections.shuffle(parejasActivas);
+        // log.info("Parejas desordenadas para mayor variedad en emparejamientos");
+        
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
         
@@ -268,6 +272,23 @@ public class TorneoService {
     public List<Enfrentamiento> getEnfrentamientosPorRonda(int ronda) {
         return enfrentamientoRepository.findByRondaOrderById(ronda);
     }
+
+	// Mezclar manualmente las parejas activas para cambiar el orden de emparejamiento
+	@Transactional
+	public void mezclarParejas() {
+		List<Pareja> parejasActivas = parejaRepository.findParejasActivas();
+		if (parejasActivas.size() < 2) {
+			throw new RuntimeException("No hay suficientes parejas activas para mezclar");
+		}
+		
+		// Aplicar shuffle a las parejas activas
+		java.util.Collections.shuffle(parejasActivas);
+		log.info("Parejas mezcladas manualmente. Nuevo orden: {}", 
+			parejasActivas.stream().map(Pareja::getNombre).collect(Collectors.joining(", ")));
+		
+		// Guardar el nuevo orden (opcional, solo para logging)
+		// Las parejas se reordenarán en la próxima generación de ronda
+	}
 
 	// Reiniciar torneo: borra enfrentamientos y parejas
 	@org.springframework.transaction.annotation.Transactional

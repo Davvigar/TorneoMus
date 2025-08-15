@@ -193,6 +193,15 @@
         <!-- Acciones de torneo -->
         <div class="row mb-4">
             <div class="col-12 text-center">
+                <form th:action="@{/parejas/mezclar}" method="post" class="d-inline me-3">
+                    <button type="submit" class="btn btn-warning" 
+                            th:disabled="${estado != null and estado.parejasActivasCount != null and estado.parejasActivasCount < 2}"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Cambia el orden de las parejas para generar emparejamientos diferentes en la próxima ronda">
+                        <i class="fas fa-random"></i> Mezclar Parejas
+                    </button>
+                </form>
                 <form th:action="@{/torneo/reiniciar}" method="post" onsubmit="return confirm('¿Seguro que quieres iniciar un nuevo torneo? Se borrarán todas las parejas y enfrentamientos.');" class="d-inline">
                     <button type="submit" class="btn btn-outline-danger">
                         <i class="fas fa-trash"></i> Nuevo Torneo
@@ -203,5 +212,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Activar tooltips de Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
 </body>
 </html> 
