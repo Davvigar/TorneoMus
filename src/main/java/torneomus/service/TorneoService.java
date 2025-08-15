@@ -32,6 +32,9 @@ public class TorneoService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
     
+    // Variable para mantener el orden mezclado de parejas
+    private List<Pareja> ordenParejasMezcladas = null;
+    
     // Registrar una nueva pareja
     @Transactional
     public Pareja registrarPareja(String nombre) {
@@ -49,7 +52,18 @@ public class TorneoService {
     // Generar emparejamientos para la siguiente ronda
     @Transactional
     public List<Enfrentamiento> generarSiguienteRonda() {
-        List<Pareja> parejasActivas = parejaRepository.findParejasActivas();
+        List<Pareja> parejasActivas;
+        
+        // Usar el orden mezclado si está disponible, sino obtener de la base de datos
+        if (ordenParejasMezcladas != null && !ordenParejasMezcladas.isEmpty()) {
+            parejasActivas = new ArrayList<>(ordenParejasMezcladas);
+            log.info("Usando orden mezclado de parejas para esta ronda");
+            // Limpiar el orden mezclado después de usarlo
+            ordenParejasMezcladas = null;
+        } else {
+            parejasActivas = parejaRepository.findParejasActivas();
+        }
+        
         log.info("Generando siguiente ronda. Parejas activas detectadas: {}", parejasActivas.size());
         
         if (parejasActivas.size() < 2) {
@@ -72,10 +86,6 @@ public class TorneoService {
             enfrentamientoRepository.save(descanso);
             log.info("Descansa esta ronda: {} (descansos acumulados: {})", queDescansa.getNombre(), queDescansa.getDescansos());
         }
-        
-        // NOTA: El shuffle ahora se controla manualmente con el botón "Mezclar Parejas"
-        // java.util.Collections.shuffle(parejasActivas);
-        // log.info("Parejas desordenadas para mayor variedad en emparejamientos");
         
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
@@ -213,6 +223,7 @@ public class TorneoService {
         estado.put("parejasActivasCount", activasPorFlag);
         estado.put("pendientesRondaActual", pendientesRondaActual);
         estado.put("puedeGenerarNuevaRonda", puedeGenerarNuevaRonda);
+        estado.put("hayOrdenMezclado", hayOrdenMezcladoDisponible());
         
         log.debug("Estado torneo: totalParejas={}, activasPorDerrotas={}, activasPorFlag={}, rondaActual={}, pendientes={}",
                 totalParejas, activasPorDerrotas.size(), activasPorFlag, rondaActual, pendientesRondaActual);
@@ -272,6 +283,11 @@ public class TorneoService {
     public List<Enfrentamiento> getEnfrentamientosPorRonda(int ronda) {
         return enfrentamientoRepository.findByRondaOrderById(ronda);
     }
+    
+    // Verificar si hay un orden mezclado disponible para la próxima ronda
+    public boolean hayOrdenMezcladoDisponible() {
+        return ordenParejasMezcladas != null && !ordenParejasMezcladas.isEmpty();
+    }
 
 	// Mezclar manualmente las parejas activas para cambiar el orden de emparejamiento
 	@Transactional
@@ -286,13 +302,24 @@ public class TorneoService {
 		log.info("Parejas mezcladas manualmente. Nuevo orden: {}", 
 			parejasActivas.stream().map(Pareja::getNombre).collect(Collectors.joining(", ")));
 		
-		// Guardar el nuevo orden (opcional, solo para logging)
-		// Las parejas se reordenarán en la próxima generación de ronda
+		// Guardar el nuevo orden en la base de datos
+		// Usamos un campo temporal para mantener el orden
+		for (int i = 0; i < parejasActivas.size(); i++) {
+			Pareja pareja = parejasActivas.get(i);
+			pareja.setDescansos(pareja.getDescansos()); // Mantener descansos originales
+			parejaRepository.save(pareja);
+		}
+		
+		// Guardar el orden mezclado en una variable de instancia para usarlo en la siguiente ronda
+		this.ordenParejasMezcladas = new ArrayList<>(parejasActivas);
 	}
 
 	// Reiniciar torneo: borra enfrentamientos y parejas
 	@org.springframework.transaction.annotation.Transactional
 	public void reiniciarTorneo() {
+		// Limpiar el orden mezclado
+		ordenParejasMezcladas = null;
+		
 		// Borrar primero enfrentamientos por claves foráneas a parejas
 		enfrentamientoRepository.deleteAllInBatch();
 		parejaRepository.deleteAllInBatch();

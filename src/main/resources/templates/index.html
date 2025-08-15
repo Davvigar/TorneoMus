@@ -114,7 +114,13 @@
                         </div>
                         <a th:href="@{/ronda/nueva}" class="btn btn-success btn-lg" 
                            th:disabled="${!(estado != null and estado.puedeGenerarNuevaRonda != null and estado.puedeGenerarNuevaRonda) or (torneoTerminado != null and torneoTerminado == true)}">
-                            <i class="fas fa-forward"></i> Generar Ronda
+                            <i class="fas fa-forward"></i> 
+                            <span th:if="${estado != null and estado.hayOrdenMezclado != null and estado.hayOrdenMezclado == true}">
+                                Generar Ronda (con orden mezclado)
+                            </span>
+                            <span th:unless="${estado != null and estado.hayOrdenMezclado != null and estado.hayOrdenMezclado == true}">
+                                Generar Ronda
+                            </span>
                         </a>
                     </div>
                 </div>
@@ -202,6 +208,14 @@
                         <i class="fas fa-random"></i> Mezclar Parejas
                     </button>
                 </form>
+                
+                <!-- Indicador de orden mezclado disponible -->
+                <div th:if="${estado != null and estado.hayOrdenMezclado != null and estado.hayOrdenMezclado == true}" 
+                     class="d-inline-block me-3">
+                    <span class="badge bg-info text-white">
+                        <i class="fas fa-dice"></i> Orden mezclado disponible para la próxima ronda
+                    </span>
+                </div>
                 <form th:action="@{/torneo/reiniciar}" method="post" onsubmit="return confirm('¿Seguro que quieres iniciar un nuevo torneo? Se borrarán todas las parejas y enfrentamientos.');" class="d-inline">
                     <button type="submit" class="btn btn-outline-danger">
                         <i class="fas fa-trash"></i> Nuevo Torneo
