@@ -43,6 +43,23 @@ public class TorneoController {
         return "redirect:/";
     }
     
+    // Generar las dos primeras rondas de una vez
+    @GetMapping("/ronda/primeras-dos")
+    public String generarPrimerasDosRondas(RedirectAttributes redirectAttributes) {
+        try {
+            if (!torneoService.puedeGenerarPrimerasDosRondas()) {
+                redirectAttributes.addFlashAttribute("error", "Solo se pueden generar las dos primeras rondas cuando el torneo está en ronda 0.");
+                return "redirect:/";
+            }
+            List<Enfrentamiento> enfrentamientos = torneoService.generarPrimerasDosRondas();
+            redirectAttributes.addFlashAttribute("mensaje", 
+                "¡Primeras dos rondas generadas! Total: " + enfrentamientos.size() + " enfrentamientos");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/";
+    }
+    
     // Generar nueva ronda
     @GetMapping("/ronda/nueva")
     public String generarNuevaRonda(RedirectAttributes redirectAttributes) {

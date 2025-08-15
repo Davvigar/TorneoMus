@@ -77,6 +77,20 @@
             </div>
         </div>
 
+        <!-- Información de inicio rápido (solo visible al inicio) -->
+        <div th:if="${estado != null and estado.puedeGenerarPrimerasDosRondas != null and estado.puedeGenerarPrimerasDosRondas == true}" 
+             class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <h5><i class="fas fa-info-circle"></i> ¡Inicio Rápido Disponible!</h5>
+                    <p class="mb-2">Puedes generar las dos primeras rondas de una vez para agilizar el inicio del torneo.</p>
+                    <a th:href="@{/ronda/primeras-dos}" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Generar Primeras 2 Rondas
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Formulario para registrar pareja -->
         <div class="row mb-4">
             <div class="col-md-6">
@@ -107,6 +121,21 @@
                     </div>
                     <div class="card-body text-center">
                         <p class="text-muted">Genera los emparejamientos para la siguiente ronda</p>
+                        
+                        <!-- Botón para generar las dos primeras rondas (solo visible al inicio) -->
+                        <div class="mb-3" th:if="${estado != null and estado.puedeGenerarPrimerasDosRondas != null and estado.puedeGenerarPrimerasDosRondas == true}">
+                            <a th:href="@{/ronda/primeras-dos}" 
+                               class="btn btn-primary btn-lg mb-2"
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               title="Genera automáticamente la ronda 1 y la ronda 2 para agilizar el inicio del torneo. Solo disponible al inicio.">
+                                <i class="fas fa-rocket"></i> ¡Generar Primeras 2 Rondas!
+                            </a>
+                            <p class="text-muted small">Acelera el inicio del torneo generando las dos primeras rondas de una vez</p>
+                            <hr class="my-3">
+                        </div>
+                        
+                        <!-- Botón normal para generar ronda -->
                         <div class="mb-2" th:if="${estado != null and estado.pendientesRondaActual != null and estado.pendientesRondaActual > 0}">
                             <span class="badge bg-warning text-dark">
                                 Tienes <span th:text="${estado.pendientesRondaActual}"></span> enfrentamiento(s) pendiente(s)
@@ -118,7 +147,7 @@
                             <span th:if="${estado != null and estado.hayOrdenMezclado != null and estado.hayOrdenMezclado == true}">
                                 Generar Ronda (con orden mezclado)
                             </span>
-                            <span th:unless="${estado != null and estado.hayOrdenMezclado != null and estado.hayOrdenMezclado == true}">
+                            <span th:unless="${estado != null and estado.hayOrdenMezclado == true}">
                                 Generar Ronda
                             </span>
                         </a>

@@ -49,6 +49,27 @@ public class TorneoService {
         return guardada;
     }
     
+    // Generar las dos primeras rondas de una vez (solo para inicio del torneo)
+    @Transactional
+    public List<Enfrentamiento> generarPrimerasDosRondas() {
+        if (getRondaActual() > 0) {
+            throw new RuntimeException("Solo se pueden generar las primeras dos rondas cuando el torneo está en ronda 0");
+        }
+        
+        List<Enfrentamiento> todasLasRondas = new ArrayList<>();
+        
+        // Generar primera ronda
+        List<Enfrentamiento> primeraRonda = generarSiguienteRonda();
+        todasLasRondas.addAll(primeraRonda);
+        
+        // Generar segunda ronda
+        List<Enfrentamiento> segundaRonda = generarSiguienteRonda();
+        todasLasRondas.addAll(segundaRonda);
+        
+        log.info("Generadas las dos primeras rondas: {} enfrentamientos en total", todasLasRondas.size());
+        return todasLasRondas;
+    }
+    
     // Generar emparejamientos para la siguiente ronda
     @Transactional
     public List<Enfrentamiento> generarSiguienteRonda() {
@@ -224,6 +245,7 @@ public class TorneoService {
         estado.put("parejasActivasCount", activasPorFlag);
         estado.put("pendientesRondaActual", pendientesRondaActual);
         estado.put("puedeGenerarNuevaRonda", puedeGenerarNuevaRonda);
+        estado.put("puedeGenerarPrimerasDosRondas", puedeGenerarPrimerasDosRondas());
         estado.put("hayOrdenMezclado", hayOrdenMezcladoDisponible());
         
         log.debug("Estado torneo: totalParejas={}, activasPorDerrotas={}, activasPorFlag={}, rondaActual={}, pendientes={}",
@@ -241,6 +263,14 @@ public class TorneoService {
             return true;
         }
         return enfrentamientoRepository.findByRondaAndJugadoFalse(rondaActual).isEmpty();
+    }
+    
+    public boolean puedeGenerarPrimerasDosRondas() {
+        if (parejaRepository.countParejasActivas() < 2) {
+            return false;
+        }
+        int rondaActual = getRondaActual();
+        return rondaActual == 0; // Solo cuando no hay rondas generadas
     }
     
     // Obtener la ronda actual
