@@ -32,14 +32,17 @@
 
         <!-- Estado del torneo -->
         <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Ronda Actual</h5>
-                        <h2 class="text-primary" th:text="${estado != null and estado.rondaActual != null ? estado.rondaActual : 0}">0</h2>
-                    </div>
-                </div>
-            </div>
+                         <div class="col-md-3">
+                 <div class="card text-center">
+                     <div class="card-body">
+                         <h5 class="card-title">Ronda Actual</h5>
+                         <h2 class="text-primary" th:text="${estado != null and estado.rondaAMostrar != null ? estado.rondaAMostrar : (estado != null and estado.rondaActual != null ? estado.rondaActual : 0)}">0</h2>
+                         <small class="text-muted" th:if="${estado != null and estado.rondaAMostrar != null and estado.rondaAMostrar != estado.rondaActual}">
+                             (Ronda <span th:text="${estado.rondaActual}"></span> disponible)
+                         </small>
+                     </div>
+                 </div>
+             </div>
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body">
@@ -77,19 +80,31 @@
             </div>
         </div>
 
-        <!-- Información de inicio rápido (solo visible al inicio) -->
-        <div th:if="${estado != null and estado.puedeGenerarPrimerasDosRondas != null and estado.puedeGenerarPrimerasDosRondas == true}" 
-             class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-info text-center">
-                    <h5><i class="fas fa-info-circle"></i> ¡Inicio Rápido Disponible!</h5>
-                    <p class="mb-2">Puedes generar las dos primeras rondas de una vez para agilizar el inicio del torneo.</p>
-                    <a th:href="@{/ronda/primeras-dos}" class="btn btn-primary">
-                        <i class="fas fa-rocket"></i> Generar Primeras 2 Rondas
-                    </a>
-                </div>
-            </div>
-        </div>
+                 <!-- Información de inicio rápido (solo visible al inicio) -->
+         <div th:if="${estado != null and estado.puedeGenerarPrimerasDosRondas != null and estado.puedeGenerarPrimerasDosRondas == true}" 
+              class="row mb-4">
+             <div class="col-12">
+                 <div class="alert alert-info text-center">
+                     <h5><i class="fas fa-info-circle"></i> ¡Inicio Rápido Disponible!</h5>
+                     <p class="mb-2">Puedes generar las dos primeras rondas de una vez para agilizar el inicio del torneo.</p>
+                     <a th:href="@{/ronda/primeras-dos}" class="btn btn-primary">
+                         <i class="fas fa-rocket"></i> Generar Primeras 2 Rondas
+                     </a>
+                 </div>
+             </div>
+         </div>
+         
+         <!-- Información cuando se han generado las dos primeras rondas -->
+         <div th:if="${estado != null and estado.rondaActual != null and estado.rondaActual >= 2 and estado.rondaAMostrar != null and estado.rondaAMostrar == 1}" 
+              class="row mb-4">
+             <div class="col-12">
+                 <div class="alert alert-warning text-center">
+                     <h5><i class="fas fa-clock"></i> Completando Ronda 1</h5>
+                     <p class="mb-2">Se han generado las dos primeras rondas. Completa todos los enfrentamientos de la ronda 1 antes de continuar con la ronda 2.</p>
+                     <small class="text-muted">La ronda 2 ya está disponible y se activará automáticamente cuando termines la ronda 1.</small>
+                 </div>
+             </div>
+         </div>
 
         <!-- Formulario para registrar pareja -->
         <div class="row mb-4">
@@ -160,9 +175,9 @@
         <div class="row mb-4" th:if="${estado != null and estado.enfrentamientosActuales != null and !estado.enfrentamientosActuales.empty}">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-gamepad"></i> Enfrentamientos Ronda <span th:text="${estado != null and estado.rondaActual != null ? estado.rondaActual : 0}">0</span></h5>
-                    </div>
+                                         <div class="card-header">
+                         <h5><i class="fas fa-gamepad"></i> Enfrentamientos Ronda <span th:text="${estado != null and estado.rondaAMostrar != null ? estado.rondaAMostrar : (estado != null and estado.rondaActual != null ? estado.rondaActual : 0)}">0</span></h5>
+                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div th:each="enfrentamiento : ${estado.enfrentamientosActuales}" 

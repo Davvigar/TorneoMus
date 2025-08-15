@@ -62,11 +62,11 @@ public class TorneoService {
         List<Enfrentamiento> primeraRonda = generarSiguienteRonda();
         todasLasRondas.addAll(primeraRonda);
         
-        // Generar segunda ronda
-        List<Enfrentamiento> segundaRonda = generarSiguienteRonda();
+        // Generar segunda ronda pero mantener el sistema en la ronda 1
+        List<Enfrentamiento> segundaRonda = generarRondaEspecifica(2);
         todasLasRondas.addAll(segundaRonda);
         
-        log.info("Generadas las dos primeras rondas: {} enfrentamientos en total", todasLasRondas.size());
+        log.info("Generadas las dos primeras rondas: {} enfrentamientos en total. El sistema permanecerá en la ronda 1 hasta completarla.", todasLasRondas.size());
         return todasLasRondas;
     }
     
@@ -135,6 +135,59 @@ public class TorneoService {
         }
         
         log.info("Total enfrentamientos generados: {}", enfrentamientos.size());
+        return enfrentamientos;
+    }
+    
+    // Generar una ronda específica sin cambiar la ronda actual del sistema
+    private List<Enfrentamiento> generarRondaEspecifica(int numeroRonda) {
+        List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
+        
+        if (parejasActivas.size() < 2) {
+            throw new RuntimeException("No hay suficientes parejas activas para generar la ronda " + numeroRonda);
+        }
+        
+        log.info("Generando ronda específica {}. Parejas activas detectadas: {}", numeroRonda, parejasActivas.size());
+        
+        // Si es impar el número de parejas, una descansa: elegir la de menos descansos
+        if (parejasActivas.size() % 2 == 1) {
+            parejasActivas.sort(java.util.Comparator.comparingInt(Pareja::getDescansos).thenComparing(Pareja::getNombre));
+            Pareja queDescansa = parejasActivas.remove(0);
+            queDescansa.setDescansos(queDescansa.getDescansos() + 1);
+            parejaRepository.save(queDescansa);
+            // Crear un enfrentamiento de descanso para mostrar en UI (pareja2 = pareja1 para evitar NULL en BD)
+            Enfrentamiento descanso = new Enfrentamiento(queDescansa, queDescansa, numeroRonda);
+            descanso.setJugado(true);
+            enfrentamientoRepository.save(descanso);
+            log.info("Descansa esta ronda: {} (descansos acumulados: {})", queDescansa.getNombre(), queDescansa.getDescansos());
+        }
+        
+        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
+        List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
+        
+        // Generar emparejamientos evitando repetir enfrentamientos
+        while (parejasDisponibles.size() >= 2) {
+            Pareja pareja1 = parejasDisponibles.remove(0);
+            Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, numeroRonda);
+            
+            if (pareja2 != null) {
+                parejasDisponibles.remove(pareja2);
+                
+                Enfrentamiento enfrentamiento = new Enfrentamiento(pareja1, pareja2, numeroRonda);
+                enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
+                enfrentamientos.add(enfrentamiento);
+                
+                // Actualizar rivales jugados
+                pareja1.agregarRival(pareja2.getNombre());
+                pareja2.agregarRival(pareja1.getNombre());
+                parejaRepository.save(pareja1);
+                parejaRepository.save(pareja2);
+                log.info("Emparejadas: {} vs {} en ronda {}", pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
+            } else {
+                log.warn("No se encontró rival para {} en esta iteración", pareja1.getNombre());
+            }
+        }
+        
+        log.info("Total enfrentamientos generados para ronda {}: {}", numeroRonda, enfrentamientos.size());
         return enfrentamientos;
     }
     
@@ -234,12 +287,25 @@ public class TorneoService {
         long activasPorFlag = parejaRepository.countParejasActivas();
         int rondaActual = getRondaActual();
         List<Enfrentamiento> enfrentamientosActuales = getEnfrentamientosRondaActual();
-        int pendientesRondaActual = (rondaActual == 0) ? 0 : enfrentamientoRepository.findByRondaAndJugadoFalse(rondaActual).size();
+        
+        // Determinar la ronda que se debe mostrar en la UI
+        int rondaAMostrar = rondaActual;
+        if (rondaActual == 2) {
+            // Si estamos en ronda 2 pero hay pendientes en ronda 1, mostrar ronda 1
+            List<Enfrentamiento> enfrentamientosRonda1 = enfrentamientoRepository.findByRondaOrderById(1);
+            boolean hayPendientesRonda1 = enfrentamientosRonda1.stream().anyMatch(e -> !e.isJugado());
+            if (hayPendientesRonda1) {
+                rondaAMostrar = 1;
+            }
+        }
+        
+        int pendientesRondaActual = (rondaActual == 0) ? 0 : enfrentamientoRepository.findByRondaAndJugadoFalse(rondaAMostrar).size();
         boolean puedeGenerarNuevaRonda = puedeGenerarNuevaRonda();
         
         estado.put("parejasActivas", activasPorDerrotas);
         estado.put("parejasEliminadas", eliminadas);
         estado.put("rondaActual", rondaActual);
+        estado.put("rondaAMostrar", rondaAMostrar);
         estado.put("enfrentamientosActuales", enfrentamientosActuales);
         estado.put("totalParejas", totalParejas);
         estado.put("parejasActivasCount", activasPorFlag);
@@ -262,6 +328,16 @@ public class TorneoService {
         if (rondaActual == 0) {
             return true;
         }
+        
+        // Si estamos en la ronda 2, verificar que no haya pendientes en la ronda 1
+        if (rondaActual == 2) {
+            List<Enfrentamiento> enfrentamientosRonda1 = enfrentamientoRepository.findByRondaOrderById(1);
+            boolean hayPendientesRonda1 = enfrentamientosRonda1.stream().anyMatch(e -> !e.isJugado());
+            if (hayPendientesRonda1) {
+                return false; // No se puede generar nueva ronda si hay pendientes en ronda 1
+            }
+        }
+        
         return enfrentamientoRepository.findByRondaAndJugadoFalse(rondaActual).isEmpty();
     }
     
@@ -285,6 +361,18 @@ public class TorneoService {
         if (rondaActual == 0) {
             return new ArrayList<>();
         }
+        
+        // Si estamos en la ronda 2 pero hay enfrentamientos pendientes en la ronda 1, 
+        // mostrar los de la ronda 1 para que se completen primero
+        if (rondaActual == 2) {
+            List<Enfrentamiento> enfrentamientosRonda1 = enfrentamientoRepository.findByRondaOrderById(1);
+            boolean hayPendientesRonda1 = enfrentamientosRonda1.stream().anyMatch(e -> !e.isJugado());
+            if (hayPendientesRonda1) {
+                log.debug("Mostrando enfrentamientos de la ronda 1 ya que hay pendientes por completar");
+                return enfrentamientosRonda1;
+            }
+        }
+        
         return enfrentamientoRepository.findByRondaOrderById(rondaActual);
     }
     
@@ -322,6 +410,14 @@ public class TorneoService {
     
     // Obtener enfrentamientos por ronda
     public List<Enfrentamiento> getEnfrentamientosPorRonda(int ronda) {
+        return enfrentamientoRepository.findByRondaOrderById(ronda);
+    }
+    
+    // Obtener enfrentamientos de una ronda específica con validación
+    public List<Enfrentamiento> getEnfrentamientosRondaEspecifica(int ronda) {
+        if (ronda <= 0) {
+            return new ArrayList<>();
+        }
         return enfrentamientoRepository.findByRondaOrderById(ronda);
     }
     
