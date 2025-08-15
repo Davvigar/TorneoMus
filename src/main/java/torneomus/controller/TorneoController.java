@@ -22,6 +22,7 @@ public class TorneoController {
     private TorneoService torneoService;
     
     // Página principal
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/")
     public String index(Model model) {
         model.addAttribute("estado", torneoService.obtenerEstadoTorneo());
@@ -90,20 +91,24 @@ public class TorneoController {
     }
     
     // Mostrar clasificación
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/clasificacion")
     public String mostrarClasificacion(Model model) {
-        model.addAttribute("parejasActivas", torneoService.getAllParejas().stream()
-                .filter(p -> !p.isEliminada())
-                .sorted((p1, p2) -> Integer.compare(p1.getDerrotas(), p2.getDerrotas()))
-                .toList());
-        model.addAttribute("parejasEliminadas", torneoService.getAllParejas().stream()
-                .filter(Pareja::isEliminada)
-                .sorted((p1, p2) -> Integer.compare(p2.getDerrotas(), p1.getDerrotas()))
-                .toList());
+        // Usar métodos con fetch join para evitar LazyInitializationException
+        List<Pareja> parejasActivas = torneoService.getParejasActivasWithRivales();
+        List<Pareja> parejasEliminadas = torneoService.getParejasEliminadasWithRivales();
+        
+        // Ordenar las listas
+        parejasActivas.sort((p1, p2) -> Integer.compare(p1.getDerrotas(), p2.getDerrotas()));
+        parejasEliminadas.sort((p1, p2) -> Integer.compare(p2.getDerrotas(), p1.getDerrotas()));
+        
+        model.addAttribute("parejasActivas", parejasActivas);
+        model.addAttribute("parejasEliminadas", parejasEliminadas);
         return "clasificacion";
     }
     
     // Mostrar historial de rondas
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/historial")
     public String mostrarHistorial(Model model) {
         int rondaActual = torneoService.getRondaActual();

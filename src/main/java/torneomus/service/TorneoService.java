@@ -61,7 +61,7 @@ public class TorneoService {
             // Limpiar el orden mezclado después de usarlo
             ordenParejasMezcladas = null;
         } else {
-            parejasActivas = parejaRepository.findParejasActivas();
+            parejasActivas = parejaRepository.findParejasActivasWithRivales();
         }
         
         log.info("Generando siguiente ronda. Parejas activas detectadas: {}", parejasActivas.size());
@@ -206,8 +206,9 @@ public class TorneoService {
     public Map<String, Object> obtenerEstadoTorneo() {
         Map<String, Object> estado = new HashMap<>();
         
-        List<Pareja> activasPorDerrotas = parejaRepository.findParejasActivas();
-        List<Pareja> eliminadas = parejaRepository.findByEliminadaTrue();
+        // Usar fetch join para evitar LazyInitializationException
+        List<Pareja> activasPorDerrotas = parejaRepository.findParejasActivasWithRivales();
+        List<Pareja> eliminadas = parejaRepository.findParejasEliminadasWithRivales();
         long totalParejas = parejaRepository.count();
         long activasPorFlag = parejaRepository.countParejasActivas();
         int rondaActual = getRondaActual();
@@ -270,13 +271,23 @@ public class TorneoService {
             return null;
         }
         
-        List<Pareja> parejasActivas = parejaRepository.findParejasActivas();
+        List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
         return parejasActivas.isEmpty() ? null : parejasActivas.get(0);
     }
     
     // Obtener todas las parejas
     public List<Pareja> getAllParejas() {
         return parejaRepository.findAll();
+    }
+    
+    // Obtener parejas activas con rivales (fetch join)
+    public List<Pareja> getParejasActivasWithRivales() {
+        return parejaRepository.findParejasActivasWithRivales();
+    }
+    
+    // Obtener parejas eliminadas con rivales (fetch join)
+    public List<Pareja> getParejasEliminadasWithRivales() {
+        return parejaRepository.findParejasEliminadasWithRivales();
     }
     
     // Obtener enfrentamientos por ronda
@@ -292,7 +303,7 @@ public class TorneoService {
 	// Mezclar manualmente las parejas activas para cambiar el orden de emparejamiento
 	@Transactional
 	public void mezclarParejas() {
-		List<Pareja> parejasActivas = parejaRepository.findParejasActivas();
+		List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
 		if (parejasActivas.size() < 2) {
 			throw new RuntimeException("No hay suficientes parejas activas para mezclar");
 		}
@@ -301,14 +312,6 @@ public class TorneoService {
 		java.util.Collections.shuffle(parejasActivas);
 		log.info("Parejas mezcladas manualmente. Nuevo orden: {}", 
 			parejasActivas.stream().map(Pareja::getNombre).collect(Collectors.joining(", ")));
-		
-		// Guardar el nuevo orden en la base de datos
-		// Usamos un campo temporal para mantener el orden
-		for (int i = 0; i < parejasActivas.size(); i++) {
-			Pareja pareja = parejasActivas.get(i);
-			pareja.setDescansos(pareja.getDescansos()); // Mantener descansos originales
-			parejaRepository.save(pareja);
-		}
 		
 		// Guardar el orden mezclado en una variable de instancia para usarlo en la siguiente ronda
 		this.ordenParejasMezcladas = new ArrayList<>(parejasActivas);
