@@ -157,6 +157,18 @@ public class TorneoController {
         return "redirect:/";
     }
 
+    // Verificar eliminación de parejas
+    @PostMapping("/torneo/verificar-eliminacion")
+    public String verificarEliminacionParejas(RedirectAttributes redirectAttributes) {
+        try {
+            torneoService.verificarEliminacionParejas();
+            redirectAttributes.addFlashAttribute("mensaje", "Estado de eliminación de parejas verificado y corregido.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "No se pudo verificar la eliminación: " + e.getMessage());
+        }
+        return "redirect:/";
+    }
+    
     // Reiniciar torneo (borra datos)
     @PostMapping("/torneo/reiniciar")
     public String reiniciarTorneo(RedirectAttributes redirectAttributes) {

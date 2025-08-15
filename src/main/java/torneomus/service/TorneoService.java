@@ -259,13 +259,33 @@ public class TorneoService {
         if (nuevoPerdedor != null) {
             nuevoPerdedor.agregarDerrota();
             int rondaDeEsteEnfrentamiento = enfrentamiento.getRonda();
-            if (rondaDeEsteEnfrentamiento < 3 && nuevoPerdedor.getDerrotas() >= 2) {
-                // En rondas 1-2 no eliminamos automáticamente
+            int rondaActual = getRondaActual();
+            
+            // Lógica mejorada de eliminación
+            if (nuevoPerdedor.getDerrotas() >= 2) {
+                // Si ya tenemos 2 o más derrotas, verificar si debemos eliminar
+                if (rondaDeEsteEnfrentamiento >= 3) {
+                    // En rondas 3+ siempre eliminamos con 2 derrotas
+                    nuevoPerdedor.setEliminada(true);
+                    log.info("Pareja {} eliminada automáticamente en ronda {} (2 derrotas)", 
+                            nuevoPerdedor.getNombre(), rondaDeEsteEnfrentamiento);
+                } else if (rondaActual >= 2) {
+                    // Si ya estamos en ronda 2 o superior, y la pareja tiene 2 derrotas,
+                    // la eliminamos automáticamente (independientemente de en qué ronda fue la derrota)
+                    nuevoPerdedor.setEliminada(true);
+                    log.info("Pareja {} eliminada automáticamente (2 derrotas, torneo en ronda {})", 
+                            nuevoPerdedor.getNombre(), rondaActual);
+                } else {
+                    // En ronda 1 con 2 derrotas, no eliminamos automáticamente
+                    nuevoPerdedor.setEliminada(false);
+                    log.info("Pareja {} con 2 derrotas en ronda 1, no eliminada automáticamente", 
+                            nuevoPerdedor.getNombre());
+                }
+            } else {
+                // Con menos de 2 derrotas, asegurar que no esté eliminada
                 nuevoPerdedor.setEliminada(false);
             }
-            if (rondaDeEsteEnfrentamiento >= 3 && nuevoPerdedor.getDerrotas() >= 2) {
-                nuevoPerdedor.setEliminada(true);
-            }
+            
             parejaRepository.save(nuevoPerdedor);
         }
     }
@@ -279,6 +299,9 @@ public class TorneoService {
     // Obtener el estado actual del torneo
     public Map<String, Object> obtenerEstadoTorneo() {
         Map<String, Object> estado = new HashMap<>();
+        
+        // Verificar y corregir el estado de eliminación si es necesario
+        verificarEliminacionParejas();
         
         // Usar fetch join para evitar LazyInitializationException
         List<Pareja> activasPorDerrotas = parejaRepository.findParejasActivasWithRivales();
@@ -424,6 +447,40 @@ public class TorneoService {
     // Verificar si hay un orden mezclado disponible para la próxima ronda
     public boolean hayOrdenMezcladoDisponible() {
         return ordenParejasMezcladas != null && !ordenParejasMezcladas.isEmpty();
+    }
+    
+    // Verificar y corregir el estado de eliminación de parejas
+    @Transactional
+    public void verificarEliminacionParejas() {
+        int rondaActual = getRondaActual();
+        if (rondaActual < 2) {
+            return; // Solo verificar cuando estemos en ronda 2 o superior
+        }
+        
+        List<Pareja> todasLasParejas = parejaRepository.findAll();
+        int parejasCorregidas = 0;
+        
+        for (Pareja pareja : todasLasParejas) {
+            if (pareja.getDerrotas() >= 2 && !pareja.isEliminada()) {
+                // Pareja con 2+ derrotas que no está eliminada
+                pareja.setEliminada(true);
+                parejaRepository.save(pareja);
+                parejasCorregidas++;
+                log.info("Pareja {} marcada como eliminada (2 derrotas, ronda actual: {})", 
+                        pareja.getNombre(), rondaActual);
+            } else if (pareja.getDerrotas() < 2 && pareja.isEliminada()) {
+                // Pareja con menos de 2 derrotas que está marcada como eliminada
+                pareja.setEliminada(false);
+                parejaRepository.save(pareja);
+                parejasCorregidas++;
+                log.info("Pareja {} marcada como activa ({} derrotas, ronda actual: {})", 
+                        pareja.getNombre(), pareja.getDerrotas(), rondaActual);
+            }
+        }
+        
+        if (parejasCorregidas > 0) {
+            log.info("Estado de eliminación corregido para {} parejas", parejasCorregidas);
+        }
     }
 
 	// Mezclar manualmente las parejas activas para cambiar el orden de emparejamiento
