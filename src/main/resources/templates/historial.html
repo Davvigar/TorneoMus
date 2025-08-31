@@ -59,15 +59,12 @@
 			</div>
 		</div>
 
-		<!-- Navegación rápida (solo si hay muchas rondas) -->
-		<div th:if="${historial != null and !historial.isEmpty() and historial.size() > 5}" class="nav-buttons">
+		<!-- Navegación rápida -->
+		<div th:if="${historial != null and !historial.isEmpty()}" class="nav-buttons">
 			<div class="row">
 				<div class="col-12 text-center">
 					<button class="btn btn-outline-primary btn-sm me-2" onclick="scrollToTop()">
 						<i class="fas fa-arrow-up"></i> Ir al Inicio
-					</button>
-					<button class="btn btn-outline-primary btn-sm me-2" onclick="scrollToBottom()">
-						<i class="fas fa-arrow-down"></i> Ir al Final
 					</button>
 					<button class="btn btn-outline-info btn-sm" onclick="scrollToCurrent()">
 						<i class="fas fa-crosshairs"></i> Ir a Ronda Actual
@@ -160,10 +157,6 @@
 	<script>
 		function scrollToTop() {
 			window.scrollTo({ top: 0, behavior: 'smooth' });
-		}
-		
-		function scrollToBottom() {
-			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 		}
 		
 		function scrollToCurrent() {
