@@ -95,17 +95,33 @@ public class TorneoService {
         java.util.Collections.shuffle(parejasActivas, randomGenerator);
         log.info("Parejas mezcladas aleatoriamente para la ronda {} con semilla {}", nuevaRonda, System.currentTimeMillis() + nuevaRonda);
         
-        // Si es impar el número de parejas, una descansa: elegir la de menos descansos
+        // Si es impar el número de parejas, una descansa: elegir aleatoriamente entre las que tienen menos descansos
         if (parejasActivas.size() % 2 == 1) {
             parejasActivas.sort(java.util.Comparator.comparingInt(Pareja::getDescansos).thenComparing(Pareja::getNombre));
-            Pareja queDescansa = parejasActivas.remove(0);
+            
+            // Encontrar el mínimo número de descansos
+            int minDescansos = parejasActivas.get(0).getDescansos();
+            
+            // Filtrar parejas con el mínimo número de descansos
+            List<Pareja> candidatosDescanso = parejasActivas.stream()
+                    .filter(p -> p.getDescansos() == minDescansos)
+                    .collect(Collectors.toList());
+            
+            // Seleccionar aleatoriamente entre los candidatos
+            int indiceAleatorio = randomGenerator.nextInt(candidatosDescanso.size());
+            Pareja queDescansa = candidatosDescanso.get(indiceAleatorio);
+            
+            // Remover la pareja seleccionada de la lista principal
+            parejasActivas.remove(queDescansa);
+            
             queDescansa.setDescansos(queDescansa.getDescansos() + 1);
             parejaRepository.save(queDescansa);
             // Crear un enfrentamiento de descanso para mostrar en UI (pareja2 = pareja1 para evitar NULL en BD)
             Enfrentamiento descanso = new Enfrentamiento(queDescansa, queDescansa, nuevaRonda);
             descanso.setJugado(true);
             enfrentamientoRepository.save(descanso);
-            log.info("Descansa esta ronda: {} (descansos acumulados: {})", queDescansa.getNombre(), queDescansa.getDescansos());
+            log.info("Descansa esta ronda: {} (descansos acumulados: {}) - seleccionada aleatoriamente entre {} candidatos", 
+                    queDescansa.getNombre(), queDescansa.getDescansos(), candidatosDescanso.size());
         }
         
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
@@ -156,17 +172,33 @@ public class TorneoService {
         java.util.Collections.shuffle(parejasActivas, randomGenerator);
         log.info("Parejas mezcladas aleatoriamente para la ronda específica {} con semilla {}", numeroRonda, System.currentTimeMillis() + numeroRonda);
         
-        // Si es impar el número de parejas, una descansa: elegir la de menos descansos
+        // Si es impar el número de parejas, una descansa: elegir aleatoriamente entre las que tienen menos descansos
         if (parejasActivas.size() % 2 == 1) {
             parejasActivas.sort(java.util.Comparator.comparingInt(Pareja::getDescansos).thenComparing(Pareja::getNombre));
-            Pareja queDescansa = parejasActivas.remove(0);
+            
+            // Encontrar el mínimo número de descansos
+            int minDescansos = parejasActivas.get(0).getDescansos();
+            
+            // Filtrar parejas con el mínimo número de descansos
+            List<Pareja> candidatosDescanso = parejasActivas.stream()
+                    .filter(p -> p.getDescansos() == minDescansos)
+                    .collect(Collectors.toList());
+            
+            // Seleccionar aleatoriamente entre los candidatos
+            int indiceAleatorio = randomGenerator.nextInt(candidatosDescanso.size());
+            Pareja queDescansa = candidatosDescanso.get(indiceAleatorio);
+            
+            // Remover la pareja seleccionada de la lista principal
+            parejasActivas.remove(queDescansa);
+            
             queDescansa.setDescansos(queDescansa.getDescansos() + 1);
             parejaRepository.save(queDescansa);
             // Crear un enfrentamiento de descanso para mostrar en UI (pareja2 = pareja1 para evitar NULL en BD)
             Enfrentamiento descanso = new Enfrentamiento(queDescansa, queDescansa, numeroRonda);
             descanso.setJugado(true);
             enfrentamientoRepository.save(descanso);
-            log.info("Descansa esta ronda: {} (descansos acumulados: {})", queDescansa.getNombre(), queDescansa.getDescansos());
+            log.info("Descansa esta ronda: {} (descansos acumulados: {}) - seleccionada aleatoriamente entre {} candidatos", 
+                    queDescansa.getNombre(), queDescansa.getDescansos(), candidatosDescanso.size());
         }
         
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();

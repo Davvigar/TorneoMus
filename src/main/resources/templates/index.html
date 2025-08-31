@@ -106,29 +106,7 @@
              </div>
          </div>
          
-         <!-- Información sobre eliminación automática -->
-         <div th:if="${estado != null and estado.rondaActual != null and estado.rondaActual >= 2}" 
-              class="row mb-4">
-             <div class="col-12">
-                 <div class="alert alert-info text-center">
-                     <h5><i class="fas fa-info-circle"></i> Eliminación Automática Activada</h5>
-                     <p class="mb-2">A partir de la ronda 2, las parejas con 2 derrotas se eliminan automáticamente del torneo.</p>
-                     <small class="text-muted">Si notas inconsistencias, puedes usar el botón "Verificar Eliminación" para corregir el estado.</small>
-                 </div>
-             </div>
-         </div>
-         
-         <!-- Información sobre mezcla automática -->
-         <div th:if="${estado != null and estado.rondaActual != null and estado.rondaActual > 0}" 
-              class="row mb-4">
-             <div class="col-12">
-                 <div class="alert alert-success text-center">
-                     <h5><i class="fas fa-random"></i> Mezcla Automática Activada</h5>
-                     <p class="mb-2">Las parejas se mezclan automáticamente en cada ronda para garantizar emparejamientos variados y evitar repeticiones.</p>
-                     <small class="text-muted">El sistema prioriza enfrentamientos no repetidos y evita que la misma pareja juegue consecutivamente.</small>
-                 </div>
-             </div>
-         </div>
+
 
         <!-- Formulario para registrar pareja -->
         <div class="row mb-4">
