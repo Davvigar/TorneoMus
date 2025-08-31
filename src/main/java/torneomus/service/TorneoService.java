@@ -142,11 +142,6 @@ public class TorneoService {
                 enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
                 enfrentamientos.add(enfrentamiento);
                 
-                // Actualizar rivales jugados
-                pareja1.agregarRival(pareja2.getNombre());
-                pareja2.agregarRival(pareja1.getNombre());
-                parejaRepository.save(pareja1);
-                parejaRepository.save(pareja2);
                 log.info("Emparejadas: {} vs {} en ronda {}", pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
             } else {
                 log.warn("No se encontró rival para {} en esta iteración", pareja1.getNombre());
@@ -219,11 +214,6 @@ public class TorneoService {
                 enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
                 enfrentamientos.add(enfrentamiento);
                 
-                // Actualizar rivales jugados
-                pareja1.agregarRival(pareja2.getNombre());
-                pareja2.agregarRival(pareja1.getNombre());
-                parejaRepository.save(pareja1);
-                parejaRepository.save(pareja2);
                 log.info("Emparejadas: {} vs {} en ronda {}", pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
             } else {
                 log.warn("No se encontró rival para {} en esta iteración", pareja1.getNombre());
@@ -370,6 +360,17 @@ public class TorneoService {
         enfrentamiento.setGanador(nuevoGanador);
         enfrentamiento.setJugado(true);
         enfrentamientoRepository.save(enfrentamiento);
+        
+        // Actualizar rivales jugados cuando se registra el resultado
+        Pareja pareja1 = enfrentamiento.getPareja1();
+        Pareja pareja2 = enfrentamiento.getPareja2();
+        if (pareja1 != null && pareja2 != null) {
+            pareja1.agregarRival(pareja2.getNombre());
+            pareja2.agregarRival(pareja1.getNombre());
+            parejaRepository.save(pareja1);
+            parejaRepository.save(pareja2);
+            log.info("Rivales actualizados: {} y {} se han enfrentado", pareja1.getNombre(), pareja2.getNombre());
+        }
 
         // Aplicar derrota al nuevo perdedor
         Pareja nuevoPerdedor = nuevoGanador.equals(enfrentamiento.getPareja1())
