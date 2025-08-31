@@ -23,26 +23,7 @@
 			border-bottom: 1px solid #dee2e6;
 			padding: 10px 0;
 		}
-		.ronda-indicator {
-			position: sticky;
-			top: 60px;
-			z-index: 999;
-			background: rgba(255,255,255,0.95);
-			backdrop-filter: blur(10px);
-			border-bottom: 1px solid #dee2e6;
-			padding: 5px 0;
-			transition: none;
-			transform: translateZ(0);
-			will-change: transform;
-		}
-		.progress {
-			transition: none;
-			transform: translateZ(0);
-		}
-		.progress-bar {
-			transition: none;
-			transform: translateZ(0);
-		}
+
 	</style>
 </head>
 <body class="bg-light">
@@ -95,24 +76,7 @@
 			</div>
 		</div>
 
-		<!-- Indicador de progreso -->
-		<div th:if="${historial != null and !historial.isEmpty()}" class="ronda-indicator">
-			<div class="row">
-				<div class="col-12">
-					<div class="progress" style="height: 8px;">
-						<div class="progress-bar bg-success" role="progressbar" 
-							 th:style="'width: ' + ${(rondaActual * 100) / historial.size()} + '%'"
-							 th:aria-valuenow="${rondaActual}" 
-							 th:aria-valuemin="0" 
-							 th:aria-valuemax="${historial.size()}">
-						</div>
-					</div>
-					<small class="text-muted">
-						Progreso: <span th:text="${rondaActual}">0</span> de <span th:text="${historial.size()}">0</span> rondas
-					</small>
-				</div>
-			</div>
-		</div>
+
 
 		<!-- Lista de rondas -->
 		<div th:if="${historial != null and !historial.isEmpty()}" th:each="entry : ${historial}" class="row mb-3">
