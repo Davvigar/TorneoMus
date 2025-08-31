@@ -32,9 +32,6 @@ public class TorneoService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
     
-    // Variable para mantener el orden mezclado de parejas
-    private List<Pareja> ordenParejasMezcladas = null;
-    
     // Registrar una nueva pareja
     @Transactional
     public Pareja registrarPareja(String nombre) {
@@ -73,17 +70,7 @@ public class TorneoService {
     // Generar emparejamientos para la siguiente ronda
     @Transactional
     public List<Enfrentamiento> generarSiguienteRonda() {
-        List<Pareja> parejasActivas;
-        
-        // Usar el orden mezclado si está disponible, sino obtener de la base de datos
-        if (ordenParejasMezcladas != null && !ordenParejasMezcladas.isEmpty()) {
-            parejasActivas = new ArrayList<>(ordenParejasMezcladas);
-            log.info("Usando orden mezclado de parejas para esta ronda");
-            // Limpiar el orden mezclado después de usarlo
-            ordenParejasMezcladas = null;
-        } else {
-            parejasActivas = parejaRepository.findParejasActivasWithRivales();
-        }
+        List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
         
         log.info("Generando siguiente ronda. Parejas activas detectadas: {}", parejasActivas.size());
         
@@ -94,6 +81,10 @@ public class TorneoService {
         int rondaActual = getRondaActual();
         int nuevaRonda = rondaActual + 1;
         log.info("Ronda actual: {}, nueva ronda: {}", rondaActual, nuevaRonda);
+        
+        // Mezclar aleatoriamente las parejas para esta ronda
+        java.util.Collections.shuffle(parejasActivas);
+        log.info("Parejas mezcladas aleatoriamente para la ronda {}", nuevaRonda);
         
         // Si es impar el número de parejas, una descansa: elegir la de menos descansos
         if (parejasActivas.size() % 2 == 1) {
@@ -111,7 +102,7 @@ public class TorneoService {
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
         
-        // Generar emparejamientos evitando repetir enfrentamientos
+        // Generar emparejamientos evitando repetir enfrentamientos y que la misma pareja juegue consecutivamente
         while (parejasDisponibles.size() >= 2) {
             Pareja pareja1 = parejasDisponibles.remove(0);
             Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, nuevaRonda);
@@ -148,6 +139,10 @@ public class TorneoService {
         
         log.info("Generando ronda específica {}. Parejas activas detectadas: {}", numeroRonda, parejasActivas.size());
         
+        // Mezclar aleatoriamente las parejas para esta ronda específica
+        java.util.Collections.shuffle(parejasActivas);
+        log.info("Parejas mezcladas aleatoriamente para la ronda específica {}", numeroRonda);
+        
         // Si es impar el número de parejas, una descansa: elegir la de menos descansos
         if (parejasActivas.size() % 2 == 1) {
             parejasActivas.sort(java.util.Comparator.comparingInt(Pareja::getDescansos).thenComparing(Pareja::getNombre));
@@ -164,7 +159,7 @@ public class TorneoService {
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
         
-        // Generar emparejamientos evitando repetir enfrentamientos
+        // Generar emparejamientos evitando repetir enfrentamientos y que la misma pareja juegue consecutivamente
         while (parejasDisponibles.size() >= 2) {
             Pareja pareja1 = parejasDisponibles.remove(0);
             Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, numeroRonda);
@@ -193,17 +188,87 @@ public class TorneoService {
     
     // Encontrar el mejor rival para una pareja
     private Pareja encontrarMejorRival(Pareja pareja, List<Pareja> candidatos, int ronda) {
+        if (candidatos.isEmpty()) {
+            return null;
+        }
+        
         // Priorizar parejas que no han jugado contra esta
         List<Pareja> noJugadas = candidatos.stream()
                 .filter(c -> !pareja.haJugadoContra(c.getNombre()))
                 .collect(Collectors.toList());
         
         if (!noJugadas.isEmpty()) {
-            return noJugadas.get(0);
+            // Si hay varias opciones, elegir la que menos veces ha jugado en rondas recientes
+            return encontrarParejaMenosActiva(noJugadas);
         }
         
-        // Si todas han jugado, tomar la primera disponible
-        return candidatos.isEmpty() ? null : candidatos.get(0);
+        // Si todas han jugado, verificar si hay alguna que no haya jugado en la ronda anterior
+        List<Pareja> noJugadasRondaAnterior = candidatos.stream()
+                .filter(c -> !haJugadoEnRondaAnterior(c, ronda))
+                .collect(Collectors.toList());
+        
+        if (!noJugadasRondaAnterior.isEmpty()) {
+            return encontrarParejaMenosActiva(noJugadasRondaAnterior);
+        }
+        
+        // Si todas han jugado y todas jugaron en la ronda anterior, tomar la que menos veces ha jugado en rondas recientes
+        return encontrarParejaMenosActiva(candidatos);
+    }
+    
+    // Verificar si una pareja jugó en la ronda anterior
+    private boolean haJugadoEnRondaAnterior(Pareja pareja, int rondaActual) {
+        if (rondaActual <= 1) {
+            return false; // No hay ronda anterior
+        }
+        
+        try {
+            int enfrentamientosRondaAnterior = enfrentamientoRepository.countEnfrentamientosEnRonda(pareja.getId(), rondaActual - 1);
+            return enfrentamientosRondaAnterior > 0;
+        } catch (Exception e) {
+            log.warn("Error al verificar si pareja {} jugó en ronda anterior: {}", pareja.getNombre(), e.getMessage());
+            return false;
+        }
+    }
+    
+    // Encontrar la pareja que menos veces ha jugado en rondas recientes
+    private Pareja encontrarParejaMenosActiva(List<Pareja> candidatos) {
+        if (candidatos.isEmpty()) {
+            return null;
+        }
+        
+        // Si solo hay un candidato, devolverlo directamente
+        if (candidatos.size() == 1) {
+            return candidatos.get(0);
+        }
+        
+        // Obtener el número de enfrentamientos jugados en las últimas 2 rondas para cada candidato
+        Map<Pareja, Integer> enfrentamientosRecientes = new HashMap<>();
+        
+        for (Pareja candidato : candidatos) {
+            try {
+                int enfrentamientosRecientesCount = enfrentamientoRepository.countEnfrentamientosRecientes(candidato.getId());
+                enfrentamientosRecientes.put(candidato, enfrentamientosRecientesCount);
+            } catch (Exception e) {
+                // Si hay algún error, asumir 0 enfrentamientos recientes
+                enfrentamientosRecientes.put(candidato, 0);
+                log.warn("Error al contar enfrentamientos recientes para pareja {}: {}", candidato.getNombre(), e.getMessage());
+            }
+        }
+        
+        // Ordenar por menos enfrentamientos recientes y luego por nombre
+        return candidatos.stream()
+                .sorted((p1, p2) -> {
+                    int comparacion = Integer.compare(
+                        enfrentamientosRecientes.getOrDefault(p1, 0),
+                        enfrentamientosRecientes.getOrDefault(p2, 0)
+                    );
+                    if (comparacion != 0) {
+                        return comparacion;
+                    }
+                    return p1.getNombre().compareTo(p2.getNombre());
+                })
+                .findFirst()
+                .orElse(candidatos.get(0));
     }
     
     // Registrar o editar el resultado de un enfrentamiento
@@ -335,7 +400,7 @@ public class TorneoService {
         estado.put("pendientesRondaActual", pendientesRondaActual);
         estado.put("puedeGenerarNuevaRonda", puedeGenerarNuevaRonda);
         estado.put("puedeGenerarPrimerasDosRondas", puedeGenerarPrimerasDosRondas());
-        estado.put("hayOrdenMezclado", hayOrdenMezcladoDisponible());
+        estado.put("hayOrdenMezclado", false); // No hay orden mezclado manual
         
         log.debug("Estado torneo: totalParejas={}, activasPorDerrotas={}, activasPorFlag={}, rondaActual={}, pendientes={}",
                 totalParejas, activasPorDerrotas.size(), activasPorFlag, rondaActual, pendientesRondaActual);
@@ -446,7 +511,7 @@ public class TorneoService {
     
     // Verificar si hay un orden mezclado disponible para la próxima ronda
     public boolean hayOrdenMezcladoDisponible() {
-        return ordenParejasMezcladas != null && !ordenParejasMezcladas.isEmpty();
+        return false; // No hay orden mezclado manual
     }
     
     // Verificar y corregir el estado de eliminación de parejas
@@ -483,28 +548,13 @@ public class TorneoService {
         }
     }
 
-	// Mezclar manualmente las parejas activas para cambiar el orden de emparejamiento
-	@Transactional
-	public void mezclarParejas() {
-		List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
-		if (parejasActivas.size() < 2) {
-			throw new RuntimeException("No hay suficientes parejas activas para mezclar");
-		}
-		
-		// Aplicar shuffle a las parejas activas
-		java.util.Collections.shuffle(parejasActivas);
-		log.info("Parejas mezcladas manualmente. Nuevo orden: {}", 
-			parejasActivas.stream().map(Pareja::getNombre).collect(Collectors.joining(", ")));
-		
-		// Guardar el orden mezclado en una variable de instancia para usarlo en la siguiente ronda
-		this.ordenParejasMezcladas = new ArrayList<>(parejasActivas);
-	}
+	// Método eliminado: la mezcla ahora es automática en cada ronda
 
 	// Reiniciar torneo: borra enfrentamientos y parejas
 	@org.springframework.transaction.annotation.Transactional
 	public void reiniciarTorneo() {
 		// Limpiar el orden mezclado
-		ordenParejasMezcladas = null;
+		// ordenParejasMezcladas = null; // Eliminado
 		
 		// Borrar primero enfrentamientos por claves foráneas a parejas
 		enfrentamientoRepository.deleteAllInBatch();

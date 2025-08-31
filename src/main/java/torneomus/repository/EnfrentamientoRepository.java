@@ -25,4 +25,10 @@ public interface EnfrentamientoRepository extends JpaRepository<Enfrentamiento, 
     
     @Query("SELECT MAX(e.ronda) FROM Enfrentamiento e")
     Integer findMaxRonda();
+    
+    @Query("SELECT COUNT(e) FROM Enfrentamiento e WHERE (e.pareja1.id = ?1 OR e.pareja2.id = ?1) AND e.jugado = true AND e.ronda >= COALESCE((SELECT MAX(e2.ronda) FROM Enfrentamiento e2), 0) - 1")
+    int countEnfrentamientosRecientes(Long parejaId);
+    
+    @Query("SELECT COUNT(e) FROM Enfrentamiento e WHERE (e.pareja1.id = ?1 OR e.pareja2.id = ?1) AND e.ronda = ?2")
+    int countEnfrentamientosEnRonda(Long parejaId, int ronda);
 } 

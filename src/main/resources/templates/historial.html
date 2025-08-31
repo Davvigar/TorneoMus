@@ -6,6 +6,33 @@
 	<title>Historial - Torneo de Mus</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+	<style>
+		.ronda-card {
+			transition: all 0.3s ease;
+		}
+		.ronda-card:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+		}
+		.nav-buttons {
+			position: sticky;
+			top: 0;
+			z-index: 1000;
+			background: rgba(255,255,255,0.95);
+			backdrop-filter: blur(10px);
+			border-bottom: 1px solid #dee2e6;
+			padding: 10px 0;
+		}
+		.ronda-indicator {
+			position: sticky;
+			top: 60px;
+			z-index: 999;
+			background: rgba(255,255,255,0.95);
+			backdrop-filter: blur(10px);
+			border-bottom: 1px solid #dee2e6;
+			padding: 5px 0;
+		}
+	</style>
 </head>
 <body class="bg-light">
 	<div class="container mt-4">
@@ -18,11 +45,15 @@
 			</div>
 		</div>
 
+		<!-- Información de la ronda actual -->
 		<div class="row mb-4">
 			<div class="col-12">
 				<div class="alert alert-info">
 					<i class="fas fa-info-circle"></i>
 					<strong>Ronda Actual:</strong> <span th:text="${rondaActual}">0</span>
+					<span th:if="${historial != null and !historial.isEmpty()}">
+						· <strong>Total de Rondas:</strong> <span th:text="${historial.size()}">0</span>
+					</span>
 				</div>
 			</div>
 		</div>
@@ -36,11 +67,52 @@
 			</div>
 		</div>
 
-		<div th:if="${historial != null and !historial.isEmpty()}" th:each="entry : ${historial}" class="row mb-4">
+		<!-- Navegación rápida (solo si hay muchas rondas) -->
+		<div th:if="${historial != null and !historial.isEmpty() and historial.size() > 5}" class="nav-buttons">
+			<div class="row">
+				<div class="col-12 text-center">
+					<button class="btn btn-outline-primary btn-sm me-2" onclick="scrollToTop()">
+						<i class="fas fa-arrow-up"></i> Ir al Inicio
+					</button>
+					<button class="btn btn-outline-primary btn-sm me-2" onclick="scrollToBottom()">
+						<i class="fas fa-arrow-down"></i> Ir al Final
+					</button>
+					<button class="btn btn-outline-info btn-sm" onclick="scrollToCurrent()">
+						<i class="fas fa-crosshairs"></i> Ir a Ronda Actual
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Indicador de progreso -->
+		<div th:if="${historial != null and !historial.isEmpty()}" class="ronda-indicator">
+			<div class="row">
+				<div class="col-12">
+					<div class="progress" style="height: 8px;">
+						<div class="progress-bar bg-success" role="progressbar" 
+							 th:style="'width: ' + ${(rondaActual * 100) / historial.size()} + '%'"
+							 th:aria-valuenow="${rondaActual}" 
+							 th:aria-valuemin="0" 
+							 th:aria-valuemax="${historial.size()}">
+						</div>
+					</div>
+					<small class="text-muted">
+						Progreso: <span th:text="${rondaActual}">0</span> de <span th:text="${historial.size()}">0</span> rondas
+					</small>
+				</div>
+			</div>
+		</div>
+
+		<!-- Lista de rondas -->
+		<div th:if="${historial != null and !historial.isEmpty()}" th:each="entry : ${historial}" class="row mb-3">
 			<div class="col-12">
-				<div class="card">
-					<div class="card-header">
-						<h5><i class="fas fa-gamepad"></i> Ronda <span th:text="${entry.key}"></span></h5>
+				<div class="card ronda-card" th:attr="id='ronda-' + ${entry.key}">
+					<div class="card-header" th:classappend="${entry.key == rondaActual ? 'bg-primary text-white' : ''}">
+						<h5>
+							<i class="fas fa-gamepad"></i> 
+							Ronda <span th:text="${entry.key}"></span>
+							<span th:if="${entry.key == rondaActual}" class="badge bg-light text-primary ms-2">Actual</span>
+						</h5>
 					</div>
 					<div class="card-body">
 						<div th:if="${entry.value != null and !entry.value.isEmpty()}" class="row">
@@ -87,15 +159,16 @@
 									</div>
 								</div>
 							</div>
-							<div th:unless="${entry.value != null and !entry.value.isEmpty()}" class="text-center text-muted">
-								<i class="fas fa-info-circle"></i> No hay enfrentamientos registrados para esta ronda
-							</div>
+						</div>
+						<div th:unless="${entry.value != null and !entry.value.isEmpty()}" class="text-center text-muted">
+							<i class="fas fa-info-circle"></i> No hay enfrentamientos registrados para esta ronda
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 
+		<!-- Navegación -->
 		<div class="row mb-4">
 			<div class="col-12 text-center">
 				<a th:href="@{/}" class="btn btn-primary me-2">
@@ -107,6 +180,38 @@
 			</div>
 		</div>
 	</div>
+	
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+		function scrollToTop() {
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		}
+		
+		function scrollToBottom() {
+			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+		}
+		
+		function scrollToCurrent() {
+			const rondaActual = document.querySelector('.card-header.bg-primary');
+			if (rondaActual) {
+				rondaActual.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+		}
+		
+		// Auto-scroll suave al hacer clic en enlaces internos
+		document.addEventListener('DOMContentLoaded', function() {
+			const links = document.querySelectorAll('a[href^="#"]');
+			links.forEach(link => {
+				link.addEventListener('click', function(e) {
+					e.preventDefault();
+					const targetId = this.getAttribute('href').substring(1);
+					const targetElement = document.getElementById(targetId);
+					if (targetElement) {
+						targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+					}
+				});
+			});
+		});
+	</script>
 </body>
 </html> 

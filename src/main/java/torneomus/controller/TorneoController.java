@@ -136,26 +136,16 @@ public class TorneoController {
             return "historial";
         }
 
-        int desde = Math.max(1, rondaActual - 4);
+        // Mostrar todas las rondas desde el principio (ronda 1 hasta la actual)
         java.util.Map<Integer, java.util.List<torneomus.entity.Enfrentamiento>> historial = new java.util.LinkedHashMap<>();
-        for (int i = desde; i <= rondaActual; i++) {
+        for (int i = 1; i <= rondaActual; i++) {
             historial.put(i, torneoService.getEnfrentamientosPorRonda(i));
         }
         model.addAttribute("historial", historial);
         return "historial";
     }
 
-    // Mezclar parejas manualmente
-    @PostMapping("/parejas/mezclar")
-    public String mezclarParejas(RedirectAttributes redirectAttributes) {
-        try {
-            torneoService.mezclarParejas();
-            redirectAttributes.addFlashAttribute("mensaje", "Parejas mezcladas correctamente. El nuevo orden se aplicará en la próxima ronda.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "No se pudieron mezclar las parejas: " + e.getMessage());
-        }
-        return "redirect:/";
-    }
+    // Método eliminado: la mezcla ahora es automática en cada ronda
 
     // Verificar eliminación de parejas
     @PostMapping("/torneo/verificar-eliminacion")
