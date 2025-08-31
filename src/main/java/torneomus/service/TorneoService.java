@@ -32,6 +32,14 @@ public class TorneoService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
     
+    // Variable para generar aleatoriedad consistente por ronda
+    private java.util.Random randomGenerator = new java.util.Random();
+    
+    // Método auxiliar para selección aleatoria
+    private int seleccionarIndiceAleatorio(int maximo) {
+        return randomGenerator.nextInt(maximo);
+    }
+    
     // Registrar una nueva pareja
     @Transactional
     public Pareja registrarPareja(String nombre) {
@@ -82,9 +90,10 @@ public class TorneoService {
         int nuevaRonda = rondaActual + 1;
         log.info("Ronda actual: {}, nueva ronda: {}", rondaActual, nuevaRonda);
         
-        // Mezclar aleatoriamente las parejas para esta ronda
-        java.util.Collections.shuffle(parejasActivas);
-        log.info("Parejas mezcladas aleatoriamente para la ronda {}", nuevaRonda);
+        // Mezclar aleatoriamente las parejas para esta ronda con semilla basada en la ronda
+        randomGenerator.setSeed(System.currentTimeMillis() + nuevaRonda);
+        java.util.Collections.shuffle(parejasActivas, randomGenerator);
+        log.info("Parejas mezcladas aleatoriamente para la ronda {} con semilla {}", nuevaRonda, System.currentTimeMillis() + nuevaRonda);
         
         // Si es impar el número de parejas, una descansa: elegir la de menos descansos
         if (parejasActivas.size() % 2 == 1) {
@@ -102,9 +111,12 @@ public class TorneoService {
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
         
-        // Generar emparejamientos evitando repetir enfrentamientos y que la misma pareja juegue consecutivamente
+        // Generar emparejamientos de forma verdaderamente aleatoria
         while (parejasDisponibles.size() >= 2) {
-            Pareja pareja1 = parejasDisponibles.remove(0);
+            // Seleccionar pareja1 de forma aleatoria
+            int indiceAleatorio = (int) (Math.random() * parejasDisponibles.size());
+            Pareja pareja1 = parejasDisponibles.remove(indiceAleatorio);
+            
             Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, nuevaRonda);
             
             if (pareja2 != null) {
@@ -139,9 +151,10 @@ public class TorneoService {
         
         log.info("Generando ronda específica {}. Parejas activas detectadas: {}", numeroRonda, parejasActivas.size());
         
-        // Mezclar aleatoriamente las parejas para esta ronda específica
-        java.util.Collections.shuffle(parejasActivas);
-        log.info("Parejas mezcladas aleatoriamente para la ronda específica {}", numeroRonda);
+        // Mezclar aleatoriamente las parejas para esta ronda específica con semilla basada en la ronda
+        randomGenerator.setSeed(System.currentTimeMillis() + numeroRonda);
+        java.util.Collections.shuffle(parejasActivas, randomGenerator);
+        log.info("Parejas mezcladas aleatoriamente para la ronda específica {} con semilla {}", numeroRonda, System.currentTimeMillis() + numeroRonda);
         
         // Si es impar el número de parejas, una descansa: elegir la de menos descansos
         if (parejasActivas.size() % 2 == 1) {
@@ -159,9 +172,12 @@ public class TorneoService {
         List<Enfrentamiento> enfrentamientos = new ArrayList<>();
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
         
-        // Generar emparejamientos evitando repetir enfrentamientos y que la misma pareja juegue consecutivamente
+        // Generar emparejamientos de forma verdaderamente aleatoria
         while (parejasDisponibles.size() >= 2) {
-            Pareja pareja1 = parejasDisponibles.remove(0);
+            // Seleccionar pareja1 de forma aleatoria
+            int indiceAleatorio = (int) (Math.random() * parejasDisponibles.size());
+            Pareja pareja1 = parejasDisponibles.remove(indiceAleatorio);
+            
             Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, numeroRonda);
             
             if (pareja2 != null) {
@@ -255,20 +271,25 @@ public class TorneoService {
             }
         }
         
-        // Ordenar por menos enfrentamientos recientes y luego por nombre
-        return candidatos.stream()
-                .sorted((p1, p2) -> {
-                    int comparacion = Integer.compare(
-                        enfrentamientosRecientes.getOrDefault(p1, 0),
-                        enfrentamientosRecientes.getOrDefault(p2, 0)
-                    );
-                    if (comparacion != 0) {
-                        return comparacion;
-                    }
-                    return p1.getNombre().compareTo(p2.getNombre());
-                })
-                .findFirst()
-                .orElse(candidatos.get(0));
+        // Encontrar el mínimo número de enfrentamientos recientes
+        int minEnfrentamientos = enfrentamientosRecientes.values().stream()
+                .mapToInt(Integer::intValue)
+                .min()
+                .orElse(0);
+        
+        // Filtrar candidatos con el mínimo número de enfrentamientos recientes
+        List<Pareja> candidatosConMinimo = candidatos.stream()
+                .filter(p -> enfrentamientosRecientes.getOrDefault(p, 0) == minEnfrentamientos)
+                .collect(Collectors.toList());
+        
+        // Si hay múltiples candidatos con el mismo mínimo, seleccionar uno aleatoriamente
+        if (candidatosConMinimo.size() > 1) {
+            int indiceAleatorio = randomGenerator.nextInt(candidatosConMinimo.size());
+            return candidatosConMinimo.get(indiceAleatorio);
+        }
+        
+        // Si solo hay uno, devolverlo
+        return candidatosConMinimo.get(0);
     }
     
     // Registrar o editar el resultado de un enfrentamiento
