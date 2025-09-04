@@ -138,6 +138,30 @@ public class TorneoService {
             if (pareja2 != null) {
                 parejasDisponibles.remove(pareja2);
                 
+                // Verificación adicional de seguridad: asegurar que no exista ya este enfrentamiento
+                if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
+                    log.warn("Se detectó enfrentamiento duplicado {} vs {} en ronda {}. Buscando rival alternativo...", 
+                            pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
+                    
+                    // Devolver la pareja2 a la lista de disponibles
+                    parejasDisponibles.add(pareja2);
+                    
+                    // Buscar un rival alternativo que no se haya enfrentado
+                    Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, nuevaRonda);
+                    
+                    if (rivalAlternativo != null) {
+                        parejasDisponibles.remove(rivalAlternativo);
+                        pareja2 = rivalAlternativo;
+                        log.info("Rival alternativo encontrado: {} vs {} en ronda {}", 
+                                pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
+                    } else {
+                        log.error("No se pudo encontrar rival alternativo para {} en ronda {}", pareja1.getNombre(), nuevaRonda);
+                        // Devolver pareja1 a la lista y continuar con la siguiente
+                        parejasDisponibles.add(pareja1);
+                        continue;
+                    }
+                }
+                
                 Enfrentamiento enfrentamiento = new Enfrentamiento(pareja1, pareja2, nuevaRonda);
                 enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
                 enfrentamientos.add(enfrentamiento);
@@ -210,6 +234,30 @@ public class TorneoService {
             if (pareja2 != null) {
                 parejasDisponibles.remove(pareja2);
                 
+                // Verificación adicional de seguridad: asegurar que no exista ya este enfrentamiento
+                if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
+                    log.warn("Se detectó enfrentamiento duplicado {} vs {} en ronda {}. Buscando rival alternativo...", 
+                            pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
+                    
+                    // Devolver la pareja2 a la lista de disponibles
+                    parejasDisponibles.add(pareja2);
+                    
+                    // Buscar un rival alternativo que no se haya enfrentado
+                    Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, numeroRonda);
+                    
+                    if (rivalAlternativo != null) {
+                        parejasDisponibles.remove(rivalAlternativo);
+                        pareja2 = rivalAlternativo;
+                        log.info("Rival alternativo encontrado: {} vs {} en ronda {}", 
+                                pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
+                    } else {
+                        log.error("No se pudo encontrar rival alternativo para {} en ronda {}", pareja1.getNombre(), numeroRonda);
+                        // Devolver pareja1 a la lista y continuar con la siguiente
+                        parejasDisponibles.add(pareja1);
+                        continue;
+                    }
+                }
+                
                 Enfrentamiento enfrentamiento = new Enfrentamiento(pareja1, pareja2, numeroRonda);
                 enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
                 enfrentamientos.add(enfrentamiento);
@@ -230,10 +278,13 @@ public class TorneoService {
             return null;
         }
         
-        // Priorizar parejas que no han jugado contra esta
+        // Priorizar parejas que no han jugado contra esta (verificar en BD, no en lista de rivales)
         List<Pareja> noJugadas = candidatos.stream()
-                .filter(c -> !pareja.haJugadoContra(c.getNombre()))
+                .filter(c -> !yaSeHanEnfrentado(pareja.getId(), c.getId()))
                 .collect(Collectors.toList());
+        
+        log.debug("Para pareja {}, candidatos totales: {}, no jugados: {}", 
+                pareja.getNombre(), candidatos.size(), noJugadas.size());
         
         if (!noJugadas.isEmpty()) {
             // Si hay varias opciones, elegir la que menos veces ha jugado en rondas recientes
@@ -251,6 +302,46 @@ public class TorneoService {
         
         // Si todas han jugado y todas jugaron en la ronda anterior, tomar la que menos veces ha jugado en rondas recientes
         return encontrarParejaMenosActiva(candidatos);
+    }
+    
+    // Encontrar un rival alternativo cuando se detecta un duplicado
+    private Pareja encontrarRivalAlternativo(Pareja pareja, List<Pareja> candidatos, int ronda) {
+        if (candidatos.isEmpty()) {
+            return null;
+        }
+        
+        // Filtrar solo parejas que no se han enfrentado a esta
+        List<Pareja> noEnfrentadas = candidatos.stream()
+                .filter(c -> !yaSeHanEnfrentado(pareja.getId(), c.getId()))
+                .collect(Collectors.toList());
+        
+        if (!noEnfrentadas.isEmpty()) {
+            // Si hay opciones, elegir la que menos veces ha jugado en rondas recientes
+            return encontrarParejaMenosActiva(noEnfrentadas);
+        }
+        
+        // Si todas se han enfrentado, devolver null (no hay alternativa)
+        log.warn("Todas las parejas disponibles ya se han enfrentado a {}", pareja.getNombre());
+        return null;
+    }
+    
+    // Verificar si dos parejas ya se han enfrentado en alguna ronda anterior
+    private boolean yaSeHanEnfrentado(Long pareja1Id, Long pareja2Id) {
+        try {
+            // Buscar si existe algún enfrentamiento entre estas dos parejas
+            Pareja pareja1 = parejaRepository.findById(pareja1Id).orElse(null);
+            Pareja pareja2 = parejaRepository.findById(pareja2Id).orElse(null);
+            
+            if (pareja1 == null || pareja2 == null) {
+                return false;
+            }
+            
+            List<Enfrentamiento> enfrentamientosPrevios = enfrentamientoRepository.findByParejas(pareja1, pareja2);
+            return !enfrentamientosPrevios.isEmpty();
+        } catch (Exception e) {
+            log.warn("Error al verificar si parejas {} y {} ya se enfrentaron: {}", pareja1Id, pareja2Id, e.getMessage());
+            return false; // En caso de error, asumir que no se han enfrentado
+        }
     }
     
     // Verificar si una pareja jugó en la ronda anterior
