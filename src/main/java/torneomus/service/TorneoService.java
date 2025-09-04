@@ -138,27 +138,17 @@ public class TorneoService {
             if (pareja2 != null) {
                 parejasDisponibles.remove(pareja2);
                 
-                // Verificación adicional de seguridad: asegurar que no exista ya este enfrentamiento
+                // Verificación adicional de seguridad: evitar duplicados si es posible
                 if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
-                    log.warn("Se detectó enfrentamiento duplicado {} vs {} en ronda {}. Buscando rival alternativo...", 
-                            pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
-                    
-                    // Devolver la pareja2 a la lista de disponibles
+                    // Devolver la pareja2 a la lista de disponibles e intentar alternativa
                     parejasDisponibles.add(pareja2);
-                    
-                    // Buscar un rival alternativo que no se haya enfrentado
                     Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, nuevaRonda);
-                    
                     if (rivalAlternativo != null) {
                         parejasDisponibles.remove(rivalAlternativo);
                         pareja2 = rivalAlternativo;
-                        log.info("Rival alternativo encontrado: {} vs {} en ronda {}", 
-                                pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
                     } else {
-                        log.error("No se pudo encontrar rival alternativo para {} en ronda {}", pareja1.getNombre(), nuevaRonda);
-                        // Devolver pareja1 a la lista y continuar con la siguiente
-                        parejasDisponibles.add(pareja1);
-                        continue;
+                        // Si no hay alternativa, aceptar el enfrentamiento repetido (caso inevitable)
+                        parejasDisponibles.remove(pareja2);
                     }
                 }
                 
@@ -234,27 +224,16 @@ public class TorneoService {
             if (pareja2 != null) {
                 parejasDisponibles.remove(pareja2);
                 
-                // Verificación adicional de seguridad: asegurar que no exista ya este enfrentamiento
+                // Verificación adicional de seguridad: evitar duplicados si es posible
                 if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
-                    log.warn("Se detectó enfrentamiento duplicado {} vs {} en ronda {}. Buscando rival alternativo...", 
-                            pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
-                    
-                    // Devolver la pareja2 a la lista de disponibles
                     parejasDisponibles.add(pareja2);
-                    
-                    // Buscar un rival alternativo que no se haya enfrentado
                     Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, numeroRonda);
-                    
                     if (rivalAlternativo != null) {
                         parejasDisponibles.remove(rivalAlternativo);
                         pareja2 = rivalAlternativo;
-                        log.info("Rival alternativo encontrado: {} vs {} en ronda {}", 
-                                pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
                     } else {
-                        log.error("No se pudo encontrar rival alternativo para {} en ronda {}", pareja1.getNombre(), numeroRonda);
-                        // Devolver pareja1 a la lista y continuar con la siguiente
-                        parejasDisponibles.add(pareja1);
-                        continue;
+                        // Si no hay alternativa, aceptar el enfrentamiento repetido (caso inevitable)
+                        parejasDisponibles.remove(pareja2);
                     }
                 }
                 
