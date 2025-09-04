@@ -124,46 +124,24 @@ public class TorneoService {
                     queDescansa.getNombre(), queDescansa.getDescansos(), candidatosDescanso.size());
         }
         
-        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
+        // Backtracking: intentar sin repeticiones, si no es posible, permitirlas solo cuando sea necesario
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
-        
-        // Generar emparejamientos de forma verdaderamente aleatoria
-        while (parejasDisponibles.size() >= 2) {
-            // Seleccionar pareja1 de forma aleatoria
-            int indiceAleatorio = (int) (Math.random() * parejasDisponibles.size());
-            Pareja pareja1 = parejasDisponibles.remove(indiceAleatorio);
-            
-            Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, nuevaRonda);
-            
-            if (pareja2 != null) {
-                parejasDisponibles.remove(pareja2);
-                
-                // Verificación adicional de seguridad: evitar duplicados si es posible
-                if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
-                    // Devolver la pareja2 a la lista de disponibles e intentar alternativa
-                    parejasDisponibles.add(pareja2);
-                    Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, nuevaRonda);
-                    if (rivalAlternativo != null) {
-                        parejasDisponibles.remove(rivalAlternativo);
-                        pareja2 = rivalAlternativo;
-                    } else {
-                        // Si no hay alternativa, aceptar el enfrentamiento repetido (caso inevitable)
-                        parejasDisponibles.remove(pareja2);
-                    }
-                }
-                
-                Enfrentamiento enfrentamiento = new Enfrentamiento(pareja1, pareja2, nuevaRonda);
-                enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
-                enfrentamientos.add(enfrentamiento);
-                
-                log.info("Emparejadas: {} vs {} en ronda {}", pareja1.getNombre(), pareja2.getNombre(), nuevaRonda);
-            } else {
-                log.warn("No se encontró rival para {} en esta iteración", pareja1.getNombre());
-            }
+        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
+        boolean exitoSinRepetir = intentarEmparejarRecursivo(parejasDisponibles, nuevaRonda, enfrentamientos, false);
+        if (!exitoSinRepetir) {
+            enfrentamientos.clear();
+            parejasDisponibles = new ArrayList<>(parejasActivas);
+            intentarEmparejarRecursivo(parejasDisponibles, nuevaRonda, enfrentamientos, true);
         }
-        
-        log.info("Total enfrentamientos generados: {}", enfrentamientos.size());
-        return enfrentamientos;
+        // Persistir enfrentamientos
+        List<Enfrentamiento> guardados = new ArrayList<>();
+        for (Enfrentamiento e : enfrentamientos) {
+            Enfrentamiento g = enfrentamientoRepository.save(e);
+            guardados.add(g);
+            log.info("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), nuevaRonda);
+        }
+        log.info("Total enfrentamientos generados: {}", guardados.size());
+        return guardados;
     }
     
     // Generar una ronda específica sin cambiar la ronda actual del sistema
@@ -210,45 +188,24 @@ public class TorneoService {
                     queDescansa.getNombre(), queDescansa.getDescansos(), candidatosDescanso.size());
         }
         
-        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
+        // Backtracking: intentar sin repeticiones, si no es posible, permitirlas solo cuando sea necesario
         List<Pareja> parejasDisponibles = new ArrayList<>(parejasActivas);
-        
-        // Generar emparejamientos de forma verdaderamente aleatoria
-        while (parejasDisponibles.size() >= 2) {
-            // Seleccionar pareja1 de forma aleatoria
-            int indiceAleatorio = (int) (Math.random() * parejasDisponibles.size());
-            Pareja pareja1 = parejasDisponibles.remove(indiceAleatorio);
-            
-            Pareja pareja2 = encontrarMejorRival(pareja1, parejasDisponibles, numeroRonda);
-            
-            if (pareja2 != null) {
-                parejasDisponibles.remove(pareja2);
-                
-                // Verificación adicional de seguridad: evitar duplicados si es posible
-                if (yaSeHanEnfrentado(pareja1.getId(), pareja2.getId())) {
-                    parejasDisponibles.add(pareja2);
-                    Pareja rivalAlternativo = encontrarRivalAlternativo(pareja1, parejasDisponibles, numeroRonda);
-                    if (rivalAlternativo != null) {
-                        parejasDisponibles.remove(rivalAlternativo);
-                        pareja2 = rivalAlternativo;
-                    } else {
-                        // Si no hay alternativa, aceptar el enfrentamiento repetido (caso inevitable)
-                        parejasDisponibles.remove(pareja2);
-                    }
-                }
-                
-                Enfrentamiento enfrentamiento = new Enfrentamiento(pareja1, pareja2, numeroRonda);
-                enfrentamiento = enfrentamientoRepository.save(enfrentamiento);
-                enfrentamientos.add(enfrentamiento);
-                
-                log.info("Emparejadas: {} vs {} en ronda {}", pareja1.getNombre(), pareja2.getNombre(), numeroRonda);
-            } else {
-                log.warn("No se encontró rival para {} en esta iteración", pareja1.getNombre());
-            }
+        List<Enfrentamiento> enfrentamientos = new ArrayList<>();
+        boolean exitoSinRepetir = intentarEmparejarRecursivo(parejasDisponibles, numeroRonda, enfrentamientos, false);
+        if (!exitoSinRepetir) {
+            enfrentamientos.clear();
+            parejasDisponibles = new ArrayList<>(parejasActivas);
+            intentarEmparejarRecursivo(parejasDisponibles, numeroRonda, enfrentamientos, true);
         }
-        
-        log.info("Total enfrentamientos generados para ronda {}: {}", numeroRonda, enfrentamientos.size());
-        return enfrentamientos;
+        // Persistir enfrentamientos
+        List<Enfrentamiento> guardados = new ArrayList<>();
+        for (Enfrentamiento e : enfrentamientos) {
+            Enfrentamiento g = enfrentamientoRepository.save(e);
+            guardados.add(g);
+            log.info("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), numeroRonda);
+        }
+        log.info("Total enfrentamientos generados para ronda {}: {}", numeroRonda, guardados.size());
+        return guardados;
     }
     
     // Encontrar el mejor rival para una pareja
@@ -477,6 +434,57 @@ public class TorneoService {
             
             parejaRepository.save(nuevoPerdedor);
         }
+    }
+
+    // Emparejador por backtracking: prioriza no repetir; si permitirRepetidos=true, permite repetir solo cuando es necesario
+    private boolean intentarEmparejarRecursivo(List<Pareja> disponibles, int ronda, List<Enfrentamiento> salida, boolean permitirRepetidos) {
+        if (disponibles.size() < 2) {
+            return true;
+        }
+
+        // Elegir una pareja al azar para repartir mejor
+        int indice = seleccionarIndiceAleatorio(disponibles.size());
+        Pareja p1 = disponibles.remove(indice);
+
+        // Candidatos preferentes: no repetidos
+        List<Pareja> candidatosNoRepetidos = disponibles.stream()
+                .filter(p2 -> !yaSeHanEnfrentado(p1.getId(), p2.getId()))
+                .collect(Collectors.toList());
+
+        // Si no hay candidatos no repetidos y no podemos repetir aún
+        if (candidatosNoRepetidos.isEmpty() && !permitirRepetidos) {
+            // Backtrack
+            disponibles.add(p1);
+            return false;
+        }
+
+        // Construir lista de intentos: primero no repetidos, si se permite repetir y no hay opción, usar todos
+        List<Pareja> intentos = !candidatosNoRepetidos.isEmpty() ? candidatosNoRepetidos : (permitirRepetidos ? new ArrayList<>(disponibles) : new ArrayList<>());
+
+        // Heurística: ordenar por el número de opciones que dejaría al resto (menor primero)
+        intentos.sort((a, b) -> {
+            int restA = (int) disponibles.stream().filter(x -> !x.getId().equals(a.getId())).filter(x -> !yaSeHanEnfrentado(x.getId(), p1.getId())).count();
+            int restB = (int) disponibles.stream().filter(x -> !x.getId().equals(b.getId())).filter(x -> !yaSeHanEnfrentado(x.getId(), p1.getId())).count();
+            return Integer.compare(restA, restB);
+        });
+
+        for (Pareja p2 : intentos) {
+            disponibles.remove(p2);
+            Enfrentamiento enf = new Enfrentamiento(p1, p2, ronda);
+            salida.add(enf);
+            boolean ok = intentarEmparejarRecursivo(disponibles, ronda, salida, permitirRepetidos);
+            if (ok) {
+                // Persistencia diferida en el caller
+                return true;
+            }
+            // Backtrack
+            salida.remove(salida.size() - 1);
+            disponibles.add(p2);
+        }
+
+        // No hubo forma; devolver p1
+        disponibles.add(p1);
+        return false;
     }
 
     // Obtener enfrentamiento por id
