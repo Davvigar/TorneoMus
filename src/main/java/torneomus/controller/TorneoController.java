@@ -44,7 +44,7 @@ public class TorneoController {
     }
     
     // Generar las dos primeras rondas de una vez
-    @GetMapping("/ronda/primeras-dos")
+    @PostMapping("/ronda/primeras-dos")
     public String generarPrimerasDosRondas(RedirectAttributes redirectAttributes) {
         try {
             if (!torneoService.puedeGenerarPrimerasDosRondas()) {
@@ -61,7 +61,7 @@ public class TorneoController {
     }
     
     // Generar nueva ronda
-    @GetMapping("/ronda/nueva")
+    @PostMapping("/ronda/nueva")
     public String generarNuevaRonda(RedirectAttributes redirectAttributes) {
         try {
             if (!torneoService.puedeGenerarNuevaRonda()) {

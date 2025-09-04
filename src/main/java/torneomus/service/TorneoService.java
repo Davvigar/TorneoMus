@@ -34,6 +34,9 @@ public class TorneoService {
     
     // Variable para generar aleatoriedad consistente por ronda
     private java.util.Random randomGenerator = new java.util.Random();
+
+    // Cerrojo simple en memoria para evitar generaciones concurrentes
+    private final Object generacionLock = new Object();
     
     // Método auxiliar para selección aleatoria
     private int seleccionarIndiceAleatorio(int maximo) {
@@ -57,38 +60,59 @@ public class TorneoService {
     // Generar las dos primeras rondas de una vez (solo para inicio del torneo)
     @Transactional
     public List<Enfrentamiento> generarPrimerasDosRondas() {
-        if (getRondaActual() > 0) {
-            throw new RuntimeException("Solo se pueden generar las primeras dos rondas cuando el torneo está en ronda 0");
+        synchronized (generacionLock) {
+            if (getRondaActual() > 0) {
+                throw new RuntimeException("Solo se pueden generar las primeras dos rondas cuando el torneo está en ronda 0");
+            }
+
+            // Si por alguna razón ya existen enfrentamientos de ronda 1 o 2, retornar existentes
+            List<Enfrentamiento> existentesR1 = enfrentamientoRepository.findByRondaOrderById(1);
+            List<Enfrentamiento> existentesR2 = enfrentamientoRepository.findByRondaOrderById(2);
+            if (!existentesR1.isEmpty() || !existentesR2.isEmpty()) {
+                List<Enfrentamiento> existentes = new ArrayList<>();
+                existentes.addAll(existentesR1);
+                existentes.addAll(existentesR2);
+                log.warn("Se solicitaron las primeras dos rondas pero ya existen: R1={}, R2={}", existentesR1.size(), existentesR2.size());
+                return existentes;
+            }
+
+            List<Enfrentamiento> todasLasRondas = new ArrayList<>();
+
+            // Generar primera ronda
+            List<Enfrentamiento> primeraRonda = generarSiguienteRonda();
+            todasLasRondas.addAll(primeraRonda);
+
+            // Generar segunda ronda pero mantener el sistema en la ronda 1
+            List<Enfrentamiento> segundaRonda = generarRondaEspecifica(2);
+            todasLasRondas.addAll(segundaRonda);
+
+            log.info("Generadas las dos primeras rondas: {} enfrentamientos en total. El sistema permanecerá en la ronda 1 hasta completarla.", todasLasRondas.size());
+            return todasLasRondas;
         }
-        
-        List<Enfrentamiento> todasLasRondas = new ArrayList<>();
-        
-        // Generar primera ronda
-        List<Enfrentamiento> primeraRonda = generarSiguienteRonda();
-        todasLasRondas.addAll(primeraRonda);
-        
-        // Generar segunda ronda pero mantener el sistema en la ronda 1
-        List<Enfrentamiento> segundaRonda = generarRondaEspecifica(2);
-        todasLasRondas.addAll(segundaRonda);
-        
-        log.info("Generadas las dos primeras rondas: {} enfrentamientos en total. El sistema permanecerá en la ronda 1 hasta completarla.", todasLasRondas.size());
-        return todasLasRondas;
     }
     
     // Generar emparejamientos para la siguiente ronda
     @Transactional
     public List<Enfrentamiento> generarSiguienteRonda() {
-        List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
-        
-        log.info("Generando siguiente ronda. Parejas activas detectadas: {}", parejasActivas.size());
-        
-        if (parejasActivas.size() < 2) {
-            throw new RuntimeException("No hay suficientes parejas activas para generar una ronda");
-        }
-        
-        int rondaActual = getRondaActual();
-        int nuevaRonda = rondaActual + 1;
-        log.info("Ronda actual: {}, nueva ronda: {}", rondaActual, nuevaRonda);
+        synchronized (generacionLock) {
+            List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
+
+            log.info("Generando siguiente ronda. Parejas activas detectadas: {}", parejasActivas.size());
+
+            if (parejasActivas.size() < 2) {
+                throw new RuntimeException("No hay suficientes parejas activas para generar una ronda");
+            }
+
+            int rondaActual = getRondaActual();
+            int nuevaRonda = rondaActual + 1;
+            log.info("Ronda actual: {}, nueva ronda: {}", rondaActual, nuevaRonda);
+
+            // Anti-duplicados: si ya existen enfrentamientos para la nueva ronda, devolverlos
+            List<Enfrentamiento> existentes = enfrentamientoRepository.findByRondaOrderById(nuevaRonda);
+            if (!existentes.isEmpty()) {
+                log.warn("Ya existen {} enfrentamientos para la ronda {}. Se omite nueva generación.", existentes.size(), nuevaRonda);
+                return existentes;
+            }
         
         // Mezclar aleatoriamente las parejas para esta ronda con semilla basada en la ronda
         randomGenerator.setSeed(System.currentTimeMillis() + nuevaRonda);
@@ -133,26 +157,35 @@ public class TorneoService {
             parejasDisponibles = new ArrayList<>(parejasActivas);
             intentarEmparejarRecursivo(parejasDisponibles, nuevaRonda, enfrentamientos, true);
         }
-        // Persistir enfrentamientos
-        List<Enfrentamiento> guardados = new ArrayList<>();
-        for (Enfrentamiento e : enfrentamientos) {
-            Enfrentamiento g = enfrentamientoRepository.save(e);
-            guardados.add(g);
-            log.info("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), nuevaRonda);
+            // Persistir enfrentamientos
+            List<Enfrentamiento> guardados = new ArrayList<>();
+            for (Enfrentamiento e : enfrentamientos) {
+                Enfrentamiento g = enfrentamientoRepository.save(e);
+                guardados.add(g);
+                log.debug("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), nuevaRonda);
+            }
+            log.info("Total enfrentamientos generados: {}", guardados.size());
+            return guardados;
         }
-        log.info("Total enfrentamientos generados: {}", guardados.size());
-        return guardados;
     }
     
     // Generar una ronda específica sin cambiar la ronda actual del sistema
     private List<Enfrentamiento> generarRondaEspecifica(int numeroRonda) {
-        List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
-        
-        if (parejasActivas.size() < 2) {
-            throw new RuntimeException("No hay suficientes parejas activas para generar la ronda " + numeroRonda);
-        }
-        
-        log.info("Generando ronda específica {}. Parejas activas detectadas: {}", numeroRonda, parejasActivas.size());
+        synchronized (generacionLock) {
+            // Anti-duplicados: si ya existen enfrentamientos para esa ronda, devolverlos
+            List<Enfrentamiento> existentes = enfrentamientoRepository.findByRondaOrderById(numeroRonda);
+            if (!existentes.isEmpty()) {
+                log.warn("Ya existen {} enfrentamientos para la ronda {}. Se omite nueva generación específica.", existentes.size(), numeroRonda);
+                return existentes;
+            }
+
+            List<Pareja> parejasActivas = parejaRepository.findParejasActivasWithRivales();
+
+            if (parejasActivas.size() < 2) {
+                throw new RuntimeException("No hay suficientes parejas activas para generar la ronda " + numeroRonda);
+            }
+
+            log.info("Generando ronda específica {}. Parejas activas detectadas: {}", numeroRonda, parejasActivas.size());
         
         // Mezclar aleatoriamente las parejas para esta ronda específica con semilla basada en la ronda
         randomGenerator.setSeed(System.currentTimeMillis() + numeroRonda);
@@ -197,15 +230,16 @@ public class TorneoService {
             parejasDisponibles = new ArrayList<>(parejasActivas);
             intentarEmparejarRecursivo(parejasDisponibles, numeroRonda, enfrentamientos, true);
         }
-        // Persistir enfrentamientos
-        List<Enfrentamiento> guardados = new ArrayList<>();
-        for (Enfrentamiento e : enfrentamientos) {
-            Enfrentamiento g = enfrentamientoRepository.save(e);
-            guardados.add(g);
-            log.info("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), numeroRonda);
+            // Persistir enfrentamientos
+            List<Enfrentamiento> guardados = new ArrayList<>();
+            for (Enfrentamiento e : enfrentamientos) {
+                Enfrentamiento g = enfrentamientoRepository.save(e);
+                guardados.add(g);
+                log.debug("Emparejadas: {} vs {} en ronda {}", e.getPareja1().getNombre(), e.getPareja2().getNombre(), numeroRonda);
+            }
+            log.info("Total enfrentamientos generados para ronda {}: {}", numeroRonda, guardados.size());
+            return guardados;
         }
-        log.info("Total enfrentamientos generados para ronda {}: {}", numeroRonda, guardados.size());
-        return guardados;
     }
     
     // Encontrar el mejor rival para una pareja

@@ -87,9 +87,11 @@
                  <div class="alert alert-info text-center">
                      <h5><i class="fas fa-info-circle"></i> ¡Inicio Rápido Disponible!</h5>
                      <p class="mb-2">Puedes generar las dos primeras rondas de una vez para agilizar el inicio del torneo.</p>
-                     <a th:href="@{/ronda/primeras-dos}" class="btn btn-primary">
-                         <i class="fas fa-rocket"></i> Generar Primeras 2 Rondas
-                     </a>
+                     <form th:action="@{/ronda/primeras-dos}" method="post" class="d-inline">
+                         <button type="submit" class="btn btn-primary">
+                             <i class="fas fa-rocket"></i> Generar Primeras 2 Rondas
+                         </button>
+                     </form>
                  </div>
              </div>
          </div>
@@ -141,13 +143,15 @@
                         
                         <!-- Botón para generar las dos primeras rondas (solo visible al inicio) -->
                         <div class="mb-3" th:if="${estado != null and estado.puedeGenerarPrimerasDosRondas != null and estado.puedeGenerarPrimerasDosRondas == true}">
-                            <a th:href="@{/ronda/primeras-dos}" 
-                               class="btn btn-primary btn-lg mb-2"
-                               data-bs-toggle="tooltip" 
-                               data-bs-placement="top" 
-                               title="Genera automáticamente la ronda 1 y la ronda 2 para agilizar el inicio del torneo. Solo disponible al inicio.">
-                                <i class="fas fa-rocket"></i> ¡Generar Primeras 2 Rondas!
-                            </a>
+                            <form th:action="@{/ronda/primeras-dos}" method="post" class="d-inline">
+                                <button type="submit" 
+                                        class="btn btn-primary btn-lg mb-2"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Genera automáticamente la ronda 1 y la ronda 2 para agilizar el inicio del torneo. Solo disponible al inicio.">
+                                    <i class="fas fa-rocket"></i> ¡Generar Primeras 2 Rondas!
+                                </button>
+                            </form>
                             <p class="text-muted small">Acelera el inicio del torneo generando las dos primeras rondas de una vez</p>
                             <hr class="my-3">
                         </div>
@@ -158,10 +162,12 @@
                                 Tienes <span th:text="${estado.pendientesRondaActual}"></span> enfrentamiento(s) pendiente(s)
                             </span>
                         </div>
-                        <a th:href="@{/ronda/nueva}" class="btn btn-success btn-lg" 
-                           th:disabled="${!(estado != null and estado.puedeGenerarNuevaRonda != null and estado.puedeGenerarNuevaRonda) or (torneoTerminado != null and torneoTerminado == true)}">
-                            <i class="fas fa-forward"></i> Generar Ronda
-                        </a>
+                        <form th:action="@{/ronda/nueva}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-lg" 
+                                    th:disabled="${!(estado != null and estado.puedeGenerarNuevaRonda != null and estado.puedeGenerarNuevaRonda) or (torneoTerminado != null and torneoTerminado == true)}">
+                                <i class="fas fa-forward"></i> Generar Ronda
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
