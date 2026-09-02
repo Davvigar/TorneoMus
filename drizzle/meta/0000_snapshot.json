@@ -1,0 +1,184 @@
+{
+  "id": "0ea60835-a572-4ba4-9ca7-1e8bfd608dc2",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.enfrentamientos": {
+      "name": "enfrentamientos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pareja1_id": {
+          "name": "pareja1_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pareja2_id": {
+          "name": "pareja2_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ronda": {
+          "name": "ronda",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ganador_id": {
+          "name": "ganador_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jugado": {
+          "name": "jugado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "enfrentamientos_pareja1_id_parejas_id_fk": {
+          "name": "enfrentamientos_pareja1_id_parejas_id_fk",
+          "tableFrom": "enfrentamientos",
+          "tableTo": "parejas",
+          "columnsFrom": [
+            "pareja1_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "enfrentamientos_pareja2_id_parejas_id_fk": {
+          "name": "enfrentamientos_pareja2_id_parejas_id_fk",
+          "tableFrom": "enfrentamientos",
+          "tableTo": "parejas",
+          "columnsFrom": [
+            "pareja2_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "enfrentamientos_ganador_id_parejas_id_fk": {
+          "name": "enfrentamientos_ganador_id_parejas_id_fk",
+          "tableFrom": "enfrentamientos",
+          "tableTo": "parejas",
+          "columnsFrom": [
+            "ganador_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parejas": {
+      "name": "parejas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "derrotas": {
+          "name": "derrotas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "eliminada": {
+          "name": "eliminada",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "descansos": {
+          "name": "descansos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rivales": {
+          "name": "rivales",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "parejas_nombre_unique": {
+          "name": "parejas_nombre_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nombre"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
