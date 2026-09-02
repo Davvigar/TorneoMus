@@ -723,7 +723,7 @@ describe("torneoTerminado y parejaGanadora", () => {
   it("parejaGanadora usa el listado por derrotas < 2", () => {
     const ps = [
       pareja({ id: 1, nombre: "A", derrotas: 2, eliminada: false }),
-      pareja({ id: 2, nombre: "B", eliminada: true }),
+      pareja({ id: 2, nombre: "B", derrotas: 2, eliminada: true }),
     ];
     const lista = [enf({ id: 1, ronda: 3, jugado: true })];
     // activas por flag = 1 -> terminado; pero listado (derrotas<2) está vacío -> null
