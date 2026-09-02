@@ -40,7 +40,7 @@ describe("tipos del dominio", () => {
   });
 
   it("EstadoTorneo y EnfrentamientoVista son importables", () => {
-    const noop = (_: EstadoTorneo | EnfrentamientoVista) => true;
-    expect(typeof noop).toBe("function");
+    const tipoDe = (v: EstadoTorneo | EnfrentamientoVista) => typeof v;
+    expect(tipoDe).toBeInstanceOf(Function);
   });
 });
