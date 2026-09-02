@@ -229,6 +229,9 @@ export default defineConfig({
     setupFiles: ["tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
     hookTimeout: 30000,
+    // Los tests de integración de tests/db/ comparten la BD torneomus_test
+    // (TRUNCATE en beforeEach); sin esto corren en paralelo y se pisan.
+    fileParallelism: false,
   },
 });
 ```
@@ -512,8 +515,8 @@ describe("tipos del dominio", () => {
   });
 
   it("EstadoTorneo y EnfrentamientoVista son importables", () => {
-    const noop = (_: EstadoTorneo | EnfrentamientoVista) => true;
-    expect(typeof noop).toBe("function");
+    const tipoDe = (v: EstadoTorneo | EnfrentamientoVista) => typeof v;
+    expect(tipoDe).toBeInstanceOf(Function);
   });
 });
 ```
@@ -2018,14 +2021,19 @@ import {
   contarParejasActivas,
   enfrentamientosRondaActual,
   parejaGanadora,
-  parejasActivasListado,
   pendientesRondaActual,
   puedeGenerarNuevaRonda,
   rondaActual,
   torneoTerminado,
 } from "@/lib/torneo/estado";
 import { enfrentamientoAVista } from "@/lib/torneo/vista";
+```
+
+Y **amplía** el `import type` de `@/lib/torneo/types` que ya existe (Task 11) para que incluya `EnfrentamientoVista` y `EstadoTorneo` además de `Enfrentamiento` y `Pareja` — un único import, sin duplicar `Pareja`:
+
+```ts
 import type {
+  Enfrentamiento,
   EnfrentamientoVista,
   EstadoTorneo,
   Pareja,
