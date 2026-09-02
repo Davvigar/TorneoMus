@@ -11,6 +11,9 @@
 /out/
 next-env.d.ts
 
+# TypeScript
+*.tsbuildinfo
+
 # Producción
 /build
 
