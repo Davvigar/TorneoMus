@@ -2393,14 +2393,18 @@ git commit -m "feat: esquemas de validación Zod para las acciones"
 ```ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const estadoAuth = { admin: false };
-const repoMock = {
-  registrarPareja: vi.fn(),
-  generarSiguienteRonda: vi.fn(),
-  registrarResultado: vi.fn(),
-  deshacerResultado: vi.fn(),
-  reiniciarTorneo: vi.fn(),
-};
+// Vitest iza los vi.mock al top del módulo; las variables que referencian deben
+// ir en vi.hoisted (solo se eximen las que empiezan por "mock", no "repoMock").
+const { estadoAuth, repoMock } = vi.hoisted(() => ({
+  estadoAuth: { admin: false },
+  repoMock: {
+    registrarPareja: vi.fn(),
+    generarSiguienteRonda: vi.fn(),
+    registrarResultado: vi.fn(),
+    deshacerResultado: vi.fn(),
+    reiniciarTorneo: vi.fn(),
+  },
+}));
 
 vi.mock("@/lib/auth", () => ({
   esAdmin: () => Promise.resolve(estadoAuth.admin),
@@ -2665,7 +2669,25 @@ export async function reiniciarTorneoAction(
 Run: `npm test -- tests/actions/torneo.test.ts`
 Expected: todos PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Silenciar el aviso de eslint por los parámetros `_prev` / `_formData`**
+
+`eslint-config-next` no configura `argsIgnorePattern`, así que el prefijo `_` no basta.
+Añadir a `eslint.config.mjs`, como último elemento del array `eslintConfig`:
+
+```js
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+```
+
+Verificar: `npm run lint` → sin errores ni avisos.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
