@@ -72,6 +72,16 @@ Tipografía: **Fraunces** (títulos, `--font-display`), **Inter** (cuerpo, `--fo
 **Files:**
 - Modify: `app/globals.css`, `app/layout.tsx`
 
+> **Tailwind v4 — cómo se usan los tokens en este plan.** El bloque `@theme` de
+> `globals.css` registra los colores; Tailwind genera automáticamente las
+> utilidades semánticas `bg-<nombre>`, `text-<nombre>`, `border-<nombre>`,
+> `fill-<nombre>`, etc. (con modificador de opacidad, p. ej. `bg-oliva/10`), y
+> `font-sans` / `font-display` para las fuentes. **Todo el código de componentes y
+> páginas de este plan usa esas utilidades** (`bg-papel`, `border-borde`,
+> `text-terracota`, `font-display`…). La sintaxis v3 `bg-[--color-x]` **no
+> funciona en v4**. Las fuentes van en un bloque `@theme inline` aparte porque
+> referencian variables que inyecta `next/font` en tiempo de ejecución.
+
 - [ ] **Step 1: Escribir `app/globals.css`**
 
 ```css
@@ -88,11 +98,11 @@ Tipografía: **Fraunces** (títulos, `--font-display`), **Inter** (cuerpo, `--fo
   --color-tinta: #3b2a20;
   --color-tinta-suave: #6b5647;
   --color-borde: #e7ddce;
+}
 
+@theme inline {
   --font-sans: var(--fuente-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--fuente-fraunces), ui-serif, Georgia, serif;
-
-  --radius-2xl: 1rem;
 }
 
 html {
@@ -147,7 +157,7 @@ export default async function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
-        <header className="border-b border-[--color-borde] bg-[--color-papel]">
+        <header className="border-b border-borde bg-papel">
           <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4">
             <a href="/" className="text-2xl sm:text-3xl">
               🏆 Mus Villamantilla
@@ -157,7 +167,7 @@ export default async function RootLayout({
           <Banderines />
         </header>
         <main className="mx-auto max-w-4xl px-4 py-6 sm:py-8">{children}</main>
-        <footer className="mx-auto max-w-4xl px-4 pb-8 pt-4 text-center text-sm text-[--color-tinta-suave]">
+        <footer className="mx-auto max-w-4xl px-4 pb-8 pt-4 text-center text-sm text-tinta-suave">
           Fiestas del pueblo · Torneo de Mus
         </footer>
       </body>
@@ -205,10 +215,10 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-[--color-borde] bg-[--color-papel] shadow-sm ${className}`}
+      className={`rounded-2xl border border-borde bg-papel shadow-sm ${className}`}
     >
       {titulo != null && (
-        <header className="border-b border-[--color-borde] px-4 py-3 font-[--font-display] text-lg text-[--color-terracota]">
+        <header className="border-b border-borde px-4 py-3 font-display text-lg text-terracota">
           {titulo}
         </header>
       )}
@@ -230,13 +240,13 @@ type Variante = "primario" | "secundario" | "peligro" | "fantasma";
 
 const estilos: Record<Variante, string> = {
   primario:
-    "bg-[--color-terracota] text-white hover:bg-[--color-terracota-oscuro]",
+    "bg-terracota text-white hover:bg-terracota-oscuro",
   secundario:
-    "bg-[--color-oliva] text-white hover:bg-[--color-oliva-oscuro]",
+    "bg-oliva text-white hover:bg-oliva-oscuro",
   peligro:
-    "border border-[--color-terracota] text-[--color-terracota] hover:bg-[--color-terracota] hover:text-white",
+    "border border-terracota text-terracota hover:bg-terracota hover:text-white",
   fantasma:
-    "border border-[--color-borde] text-[--color-tinta] hover:bg-[--color-crema]",
+    "border border-borde text-tinta hover:bg-crema",
 };
 
 export function Boton({
@@ -279,17 +289,17 @@ export function Stat({
   tono?: "tinta" | "terracota" | "oliva" | "ambar";
 }) {
   const color = {
-    tinta: "text-[--color-tinta]",
-    terracota: "text-[--color-terracota]",
-    oliva: "text-[--color-oliva]",
-    ambar: "text-[--color-ambar]",
+    tinta: "text-tinta",
+    terracota: "text-terracota",
+    oliva: "text-oliva",
+    ambar: "text-ambar",
   }[tono];
   return (
-    <div className="rounded-2xl border border-[--color-borde] bg-[--color-papel] p-4 text-center shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-[--color-tinta-suave]">
+    <div className="rounded-2xl border border-borde bg-papel p-4 text-center shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-tinta-suave">
         {etiqueta}
       </div>
-      <div className={`mt-1 font-[--font-display] text-3xl ${color}`}>{valor}</div>
+      <div className={`mt-1 font-display text-3xl ${color}`}>{valor}</div>
     </div>
   );
 }
@@ -308,10 +318,10 @@ export function Alerta({
   children: ReactNode;
 }) {
   const estilo = {
-    exito: "border-[--color-oliva] bg-[--color-oliva]/10 text-[--color-oliva-oscuro]",
+    exito: "border-oliva bg-oliva/10 text-oliva-oscuro",
     error:
-      "border-[--color-terracota] bg-[--color-terracota]/10 text-[--color-terracota-oscuro]",
-    info: "border-[--color-ambar] bg-[--color-ambar]/10 text-[--color-tinta]",
+      "border-terracota bg-terracota/10 text-terracota-oscuro",
+    info: "border-ambar bg-ambar/10 text-tinta",
   }[tono];
   return (
     <div
@@ -340,7 +350,7 @@ export function Tabla({
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-[--color-borde] text-left text-[--color-tinta-suave]">
+          <tr className="border-b border-borde text-left text-tinta-suave">
             {cabeceras.map((c) => (
               <th key={c} className="whitespace-nowrap px-3 py-2 font-medium">
                 {c}
@@ -434,7 +444,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) onCerrar();
       }}
-      className="rounded-2xl border border-[--color-borde] p-0 backdrop:bg-black/30"
+      className="rounded-2xl border border-borde p-0 backdrop:bg-black/30"
     >
       <div className="w-[min(90vw,24rem)] p-5">
         <h2 className="mb-3 text-lg">{titulo}</h2>
@@ -537,7 +547,7 @@ export function CandadoAdmin({ admin }: { admin: boolean }) {
             required
             autoFocus
             placeholder="Contraseña"
-            className="rounded-2xl border border-[--color-borde] px-3 py-2"
+            className="rounded-2xl border border-borde px-3 py-2"
           />
           <AlertaAccion estado={estado} />
           <Boton type="submit">Entrar</Boton>
@@ -673,12 +683,12 @@ export function TarjetaEnfrentamiento({
   admin: boolean;
 }) {
   const borde = enf.esDescanso
-    ? "border-[--color-ambar]"
-    : "border-[--color-borde]";
+    ? "border-ambar"
+    : "border-borde";
 
   return (
-    <div className={`rounded-2xl border ${borde} bg-[--color-papel] p-4 shadow-sm`}>
-      <div className="mb-2 text-xs uppercase tracking-wide text-[--color-tinta-suave]">
+    <div className={`rounded-2xl border ${borde} bg-papel p-4 shadow-sm`}>
+      <div className="mb-2 text-xs uppercase tracking-wide text-tinta-suave">
         {enf.esDescanso
           ? `Quien libra · Ronda ${enf.ronda}`
           : `Enfrentamiento #${enf.id}`}
@@ -687,12 +697,12 @@ export function TarjetaEnfrentamiento({
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">{enf.pareja1.nombre}</span>
         {enf.esDescanso ? (
-          <span className="rounded-full bg-[--color-ambar]/20 px-2 py-0.5 text-sm text-[--color-tinta]">
+          <span className="rounded-full bg-ambar/20 px-2 py-0.5 text-sm text-tinta">
             Descanso
           </span>
         ) : (
           <>
-            <span className="text-[--color-tinta-suave]">vs</span>
+            <span className="text-tinta-suave">vs</span>
             <span className="font-medium">{enf.pareja2?.nombre}</span>
           </>
         )}
@@ -701,11 +711,11 @@ export function TarjetaEnfrentamiento({
       {!enf.esDescanso && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           {enf.jugado ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[--color-oliva]/15 px-2 py-0.5 text-[--color-oliva-oscuro]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-oliva/15 px-2 py-0.5 text-oliva-oscuro">
               <Crown size={14} /> {enf.ganador?.nombre}
             </span>
           ) : (
-            <span className="rounded-full bg-[--color-ambar]/20 px-2 py-0.5">
+            <span className="rounded-full bg-ambar/20 px-2 py-0.5">
               Pendiente
             </span>
           )}
@@ -713,7 +723,7 @@ export function TarjetaEnfrentamiento({
           {admin && !enf.jugado && (
             <Link
               href={`/resultado/${enf.id}`}
-              className="rounded-2xl border border-[--color-terracota] px-3 py-1 text-[--color-terracota] hover:bg-[--color-terracota] hover:text-white"
+              className="rounded-2xl border border-terracota px-3 py-1 text-terracota hover:bg-terracota hover:text-white"
             >
               Registrar resultado
             </Link>
@@ -722,7 +732,7 @@ export function TarjetaEnfrentamiento({
             <>
               <Link
                 href={`/resultado/${enf.id}`}
-                className="rounded-2xl border border-[--color-borde] px-3 py-1 hover:bg-[--color-crema]"
+                className="rounded-2xl border border-borde px-3 py-1 hover:bg-crema"
               >
                 Corregir
               </Link>
@@ -750,8 +760,8 @@ import { Crown } from "lucide-react";
 
 export function BannerGanador({ nombre }: { nombre: string }) {
   return (
-    <div className="rounded-2xl border border-[--color-ambar] bg-[--color-ambar]/15 p-5 text-center">
-      <div className="flex items-center justify-center gap-2 font-[--font-display] text-xl text-[--color-terracota]">
+    <div className="rounded-2xl border border-ambar bg-ambar/15 p-5 text-center">
+      <div className="flex items-center justify-center gap-2 font-display text-xl text-terracota">
         <Crown /> ¡Torneo finalizado!
       </div>
       <p className="mt-1 text-lg">
@@ -815,7 +825,7 @@ export function PanelAdmin({
     <Card titulo="Administración">
       <div className="grid gap-4 sm:grid-cols-2">
         <form action={accionPareja} className="flex flex-col gap-2">
-          <label htmlFor="nombre" className="text-sm text-[--color-tinta-suave]">
+          <label htmlFor="nombre" className="text-sm text-tinta-suave">
             Nueva pareja
           </label>
           <input
@@ -825,7 +835,7 @@ export function PanelAdmin({
             maxLength={60}
             disabled={torneoTerminado}
             placeholder="Ej: Los Tigres"
-            className="rounded-2xl border border-[--color-borde] px-3 py-2"
+            className="rounded-2xl border border-borde px-3 py-2"
           />
           <Boton type="submit" disabled={torneoTerminado}>
             Registrar pareja
@@ -834,9 +844,9 @@ export function PanelAdmin({
         </form>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm text-[--color-tinta-suave]">Ronda</span>
+          <span className="text-sm text-tinta-suave">Ronda</span>
           {pendientes > 0 && (
-            <span className="rounded-full bg-[--color-ambar]/20 px-2 py-0.5 text-center text-sm">
+            <span className="rounded-full bg-ambar/20 px-2 py-0.5 text-center text-sm">
               {pendientes} enfrentamiento(s) pendiente(s)
             </span>
           )}
@@ -850,7 +860,7 @@ export function PanelAdmin({
         </div>
       </div>
 
-      <hr className="my-4 border-[--color-borde]" />
+      <hr className="my-4 border-borde" />
 
       <BotonAccion
         accion={reiniciarTorneoAction}
@@ -956,13 +966,13 @@ export default async function Inicio() {
       <nav className="flex flex-wrap justify-center gap-3">
         <Link
           href="/clasificacion"
-          className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]"
+          className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel"
         >
           Clasificación
         </Link>
         <Link
           href="/historial"
-          className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]"
+          className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel"
         >
           Historial
         </Link>
@@ -1010,7 +1020,7 @@ function Filas({ parejas, vacio }: { parejas: Pareja[]; vacio: string }) {
   if (parejas.length === 0) {
     return (
       <tr>
-        <td colSpan={4} className="px-3 py-4 text-center text-[--color-tinta-suave]">
+        <td colSpan={4} className="px-3 py-4 text-center text-tinta-suave">
           {vacio}
         </td>
       </tr>
@@ -1019,11 +1029,11 @@ function Filas({ parejas, vacio }: { parejas: Pareja[]; vacio: string }) {
   return (
     <>
       {parejas.map((p, i) => (
-        <tr key={p.id} className="border-b border-[--color-borde]">
+        <tr key={p.id} className="border-b border-borde">
           <td className="px-3 py-2">{i + 1}</td>
           <td className="px-3 py-2 font-medium">{p.nombre}</td>
           <td className="px-3 py-2">{p.derrotas}</td>
-          <td className="px-3 py-2 text-[--color-tinta-suave]">
+          <td className="px-3 py-2 text-tinta-suave">
             {p.rivales.length ? p.rivales.join(", ") : "—"}
           </td>
         </tr>
@@ -1057,10 +1067,10 @@ export default async function Clasificacion() {
       </Card>
 
       <nav className="flex flex-wrap justify-center gap-3">
-        <Link href="/" className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]">
+        <Link href="/" className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel">
           Inicio
         </Link>
-        <Link href="/historial" className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]">
+        <Link href="/historial" className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel">
           Historial
         </Link>
       </nav>
@@ -1114,12 +1124,12 @@ export default async function Historial() {
                 <div
                   key={e.id}
                   className={`rounded-2xl border p-3 ${
-                    e.esDescanso ? "border-[--color-ambar]" : "border-[--color-borde]"
+                    e.esDescanso ? "border-ambar" : "border-borde"
                   }`}
                 >
                   {e.esDescanso ? (
                     <p>
-                      <span className="text-[--color-tinta-suave]">Quien libra:</span>{" "}
+                      <span className="text-tinta-suave">Quien libra:</span>{" "}
                       <strong>{e.pareja1.nombre}</strong>
                     </p>
                   ) : (
@@ -1129,16 +1139,16 @@ export default async function Historial() {
                       </p>
                       {e.jugado ? (
                         <p className="mt-1 text-sm">
-                          <span className="text-[--color-oliva-oscuro]">
+                          <span className="text-oliva-oscuro">
                             Ganador: {e.ganador?.nombre}
                           </span>
                           {" · "}
-                          <span className="text-[--color-terracota-oscuro]">
+                          <span className="text-terracota-oscuro">
                             Perdedor: {e.perdedor?.nombre}
                           </span>
                         </p>
                       ) : (
-                        <p className="mt-1 text-sm text-[--color-tinta-suave]">
+                        <p className="mt-1 text-sm text-tinta-suave">
                           Pendiente
                         </p>
                       )}
@@ -1152,10 +1162,10 @@ export default async function Historial() {
       )}
 
       <nav className="flex flex-wrap justify-center gap-3">
-        <Link href="/" className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]">
+        <Link href="/" className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel">
           Inicio
         </Link>
-        <Link href="/clasificacion" className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]">
+        <Link href="/clasificacion" className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel">
           Clasificación
         </Link>
       </nav>
@@ -1207,7 +1217,7 @@ export function FormResultado({ enf }: { enf: EnfrentamientoVista }) {
         {opciones.map((p) => (
           <label
             key={p.id}
-            className="flex items-center gap-2 rounded-2xl border border-[--color-borde] px-3 py-2"
+            className="flex items-center gap-2 rounded-2xl border border-borde px-3 py-2"
           >
             <input
               type="radio"
@@ -1273,7 +1283,7 @@ export default async function ResultadoPage({
 
       <Link
         href="/"
-        className="self-center rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]"
+        className="self-center rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel"
       >
         Volver al inicio
       </Link>
@@ -1293,7 +1303,7 @@ export default function NoEncontrado() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl">Enfrentamiento no encontrado</h1>
       <Alerta tono="error">Ese enfrentamiento no existe.</Alerta>
-      <Link href="/" className="self-center rounded-2xl border border-[--color-borde] px-4 py-2 text-sm">
+      <Link href="/" className="self-center rounded-2xl border border-borde px-4 py-2 text-sm">
         Volver al inicio
       </Link>
     </div>
@@ -1335,7 +1345,7 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 py-10 text-center">
       <h1 className="text-2xl">Algo ha fallado</h1>
-      <p className="text-[--color-tinta-suave]">
+      <p className="text-tinta-suave">
         Puede que la base de datos estuviera despertando. Inténtalo de nuevo en unos
         segundos.
       </p>
@@ -1358,7 +1368,7 @@ export default function NoEncontrado() {
       <h1 className="text-2xl">Página no encontrada</h1>
       <Link
         href="/"
-        className="rounded-2xl border border-[--color-borde] px-4 py-2 text-sm hover:bg-[--color-papel]"
+        className="rounded-2xl border border-borde px-4 py-2 text-sm hover:bg-papel"
       >
         Volver al inicio
       </Link>
@@ -1728,5 +1738,5 @@ gh pr create --title "Migración a Next.js + Supabase" --body "Reescribe TorneoM
 - Componentes: `Card` (prop `titulo`), `Boton` (prop `variante`), `Stat` (`etiqueta`/`valor`/`tono`), `Alerta` (`tono`), `Tabla` (`cabeceras`), `Modal` (`abierto`/`onCerrar`/`titulo`) — nombres de props consistentes entre definición (Tasks 2-3) y uso (Tasks 4-12).
 
 **Nota de riesgo:**
-- Tailwind v4 con la sintaxis `bg-[--color-x]` requiere que los tokens estén en `@theme`; si una utilidad arbitraria no resuelve, usar `bg-[color:var(--color-x)]`. Verificado visualmente en cada Task con prueba manual.
+- Tailwind v4 con la sintaxis `bg-x` requiere que los tokens estén en `@theme`; si una utilidad arbitraria no resuelve, usar `bg-[color:var(--color-x)]`. Verificado visualmente en cada Task con prueba manual.
 - `useFormStatus` dentro de `Boton` solo refleja `pending` si el `Boton` está dentro del `<form>`; en `BotonAccion` y los formularios lo está. Para el `Boton` de `error.tsx` (fuera de form) se pasa `type="button"` y no depende de `pending`.
