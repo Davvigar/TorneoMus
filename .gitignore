@@ -1,23 +1,39 @@
-# Maven
-/target/
-!.mvn/wrapper/maven-wrapper.jar
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
+# Dependencias
+/node_modules
+/.pnp
+.pnp.js
+
+# Tests
+/coverage
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Producción
+/build
+
+# Ficheros varios
+.DS_Store
+Thumbs.db
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Entorno local
+.env
+.env.local
+.env.*.local
+.env.test
 
 # IDEs
-*.iml
 .idea/
-.project
-.classpath
-.settings/
 .vscode/
+*.iml
 
-# Sistema
-.DS_Store
-Thumbs.db 
+# Drizzle
+/drizzle/meta/_journal.json.bak
