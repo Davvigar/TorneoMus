@@ -13,7 +13,8 @@
     "seed": "dotenv -e .env.local -- tsx scripts/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "verify": "npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
