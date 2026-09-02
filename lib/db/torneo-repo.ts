@@ -48,6 +48,17 @@ export function crearRepo(database: Db = dbPorDefecto) {
         .where(eq(enfrentamientos.id, id));
       return rows[0] ? aEnfrentamiento(rows[0]) : null;
     },
+
+    async registrarPareja(nombre: string): Promise<void> {
+      const existentes = await database
+        .select({ id: parejas.id })
+        .from(parejas)
+        .where(eq(parejas.nombre, nombre));
+      if (existentes.length > 0) {
+        throw new Error("Ya existe una pareja con ese nombre");
+      }
+      await database.insert(parejas).values({ nombre });
+    },
   };
 }
 
