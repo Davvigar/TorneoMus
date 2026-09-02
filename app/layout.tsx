@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Link from "next/link";
-// import { esAdmin } from "@/lib/auth";
-// import { Banderines } from "@/components/Banderines";
-// import { CandadoAdmin } from "@/components/CandadoAdmin";
+import { esAdmin } from "@/lib/auth";
+import { Banderines } from "@/components/Banderines";
+import { CandadoAdmin } from "@/components/CandadoAdmin";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--fuente-inter" });
@@ -23,7 +23,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // const admin = await esAdmin();
+  const admin = await esAdmin();
   return (
     <html lang="es" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
@@ -32,9 +32,9 @@ export default async function RootLayout({
             <Link href="/" className="text-2xl sm:text-3xl">
               🏆 Mus Villamantilla
             </Link>
-            {/* <CandadoAdmin admin={admin} /> */}
+            <CandadoAdmin admin={admin} />
           </div>
-          {/* <Banderines /> */}
+          <Banderines />
         </header>
         <main className="mx-auto max-w-4xl px-4 py-6 sm:py-8">{children}</main>
         <footer className="mx-auto max-w-4xl px-4 pb-8 pt-4 text-center text-sm text-tinta-suave">
