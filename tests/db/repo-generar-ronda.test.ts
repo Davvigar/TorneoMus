@@ -56,7 +56,7 @@ describe("repo.generarSiguienteRonda", () => {
     );
   });
 
-  it.skip("permite la siguiente ronda cuando la actual está completa y evita repetir rival", async () => {
+  it("permite la siguiente ronda cuando la actual está completa y evita repetir rival", async () => {
     await registrar("A", "B", "C", "D");
     await repo.generarSiguienteRonda();
     let es = await repo.listarEnfrentamientos();

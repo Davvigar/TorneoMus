@@ -6,6 +6,7 @@ import type { EnfrentamientoRow, ParejaRow } from "./schema";
 import type { Enfrentamiento, Pareja } from "@/lib/torneo/types";
 import { generarEmparejamientos } from "@/lib/torneo/emparejar";
 import { rondaActual } from "@/lib/torneo/estado";
+import { ganadorParticipa, recomputarEstadoParejas } from "@/lib/torneo/reglas";
 
 function aPareja(r: ParejaRow): Pareja {
   return {
@@ -30,6 +31,21 @@ function aEnfrentamiento(r: EnfrentamientoRow): Enfrentamiento {
 }
 
 export function crearRepo(database: Db = dbPorDefecto) {
+  async function recomputarYPersistir(tx: Parameters<Parameters<Db["transaction"]>[0]>[0]) {
+    const pRows = await tx.select().from(parejas).orderBy(parejas.id);
+    const eRows = await tx.select().from(enfrentamientos);
+    const recomputadas = recomputarEstadoParejas(
+      pRows.map(aPareja),
+      eRows.map(aEnfrentamiento),
+    );
+    for (const p of recomputadas) {
+      await tx
+        .update(parejas)
+        .set({ derrotas: p.derrotas, eliminada: p.eliminada })
+        .where(eq(parejas.id, p.id));
+    }
+  }
+
   return {
     async listarParejas(): Promise<Pareja[]> {
       const rows = await database.select().from(parejas).orderBy(parejas.id);
@@ -125,6 +141,57 @@ export function crearRepo(database: Db = dbPorDefecto) {
         }
 
         return emparejamientos.length;
+      });
+    },
+
+    async registrarResultado(
+      enfrentamientoId: number,
+      ganadorId: number,
+    ): Promise<void> {
+      await database.transaction(async (tx) => {
+        const eRows = await tx
+          .select()
+          .from(enfrentamientos)
+          .where(eq(enfrentamientos.id, enfrentamientoId));
+        const enf = eRows[0] ? aEnfrentamiento(eRows[0]) : null;
+        if (!enf) throw new Error("Enfrentamiento no encontrado");
+        if (enf.pareja2Id === null) {
+          throw new Error("Un descanso no tiene resultado");
+        }
+        if (!ganadorParticipa(enf, ganadorId)) {
+          throw new Error(
+            "La pareja ganadora no participa en este enfrentamiento",
+          );
+        }
+
+        await tx
+          .update(enfrentamientos)
+          .set({ ganadorId, jugado: true })
+          .where(eq(enfrentamientos.id, enfrentamientoId));
+
+        await recomputarYPersistir(tx);
+      });
+    },
+
+    async deshacerResultado(enfrentamientoId: number): Promise<void> {
+      await database.transaction(async (tx) => {
+        const eRows = await tx
+          .select()
+          .from(enfrentamientos)
+          .where(eq(enfrentamientos.id, enfrentamientoId));
+        const enf = eRows[0] ? aEnfrentamiento(eRows[0]) : null;
+        if (!enf) throw new Error("Enfrentamiento no encontrado");
+        if (!enf.jugado || enf.ganadorId === null) {
+          throw new Error(
+            "Este enfrentamiento no tiene resultado que deshacer",
+          );
+        }
+        await tx
+          .update(enfrentamientos)
+          .set({ ganadorId: null, jugado: false })
+          .where(eq(enfrentamientos.id, enfrentamientoId));
+
+        await recomputarYPersistir(tx);
       });
     },
   };
