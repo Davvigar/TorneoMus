@@ -3,9 +3,24 @@ import { sql } from "drizzle-orm";
 import { db as dbPorDefecto, type Db } from "./client";
 import { enfrentamientos, parejas } from "./schema";
 import type { EnfrentamientoRow, ParejaRow } from "./schema";
-import type { Enfrentamiento, Pareja } from "@/lib/torneo/types";
+import type {
+  Enfrentamiento,
+  EnfrentamientoVista,
+  EstadoTorneo,
+  Pareja,
+} from "@/lib/torneo/types";
 import { generarEmparejamientos } from "@/lib/torneo/emparejar";
-import { rondaActual } from "@/lib/torneo/estado";
+import {
+  contarParejasActivas,
+  enfrentamientosRondaActual,
+  parejaGanadora,
+  parejasActivasListado,
+  pendientesRondaActual,
+  puedeGenerarNuevaRonda,
+  rondaActual,
+  torneoTerminado,
+} from "@/lib/torneo/estado";
+import { enfrentamientoAVista } from "@/lib/torneo/vista";
 import { ganadorParticipa, recomputarEstadoParejas } from "@/lib/torneo/reglas";
 
 function aPareja(r: ParejaRow): Pareja {
@@ -193,6 +208,76 @@ export function crearRepo(database: Db = dbPorDefecto) {
 
         await recomputarYPersistir(tx);
       });
+    },
+
+    async reiniciarTorneo(): Promise<void> {
+      await database.execute(
+        sql`TRUNCATE TABLE enfrentamientos, parejas RESTART IDENTITY CASCADE`,
+      );
+    },
+
+    async getEstadoTorneo(): Promise<EstadoTorneo> {
+      const [pRows, eRows] = await Promise.all([
+        database.select().from(parejas).orderBy(parejas.id),
+        database.select().from(enfrentamientos).orderBy(enfrentamientos.id),
+      ]);
+      const ps = pRows.map(aPareja);
+      const es = eRows.map(aEnfrentamiento);
+      return {
+        rondaActual: rondaActual(es),
+        totalParejas: ps.length,
+        parejasActivasCount: contarParejasActivas(ps),
+        enfrentamientosActuales: enfrentamientosRondaActual(es),
+        pendientesRondaActual: pendientesRondaActual(es),
+        puedeGenerarNuevaRonda: puedeGenerarNuevaRonda(ps, es),
+        torneoTerminado: torneoTerminado(ps, es),
+        parejaGanadora: parejaGanadora(ps, es),
+      };
+    },
+
+    async getClasificacion(): Promise<{ activas: Pareja[]; eliminadas: Pareja[] }> {
+      const ps = (
+        await database.select().from(parejas).orderBy(parejas.id)
+      ).map(aPareja);
+      return {
+        activas: ps
+          .filter((p) => !p.eliminada)
+          .sort((a, b) => a.derrotas - b.derrotas),
+        eliminadas: ps
+          .filter((p) => p.eliminada)
+          .sort((a, b) => b.derrotas - a.derrotas),
+      };
+    },
+
+    async getHistorial(): Promise<
+      { ronda: number; enfrentamientos: EnfrentamientoVista[] }[]
+    > {
+      const [pRows, eRows] = await Promise.all([
+        database.select().from(parejas).orderBy(parejas.id),
+        database.select().from(enfrentamientos).orderBy(enfrentamientos.id),
+      ]);
+      const indice = new Map(pRows.map(aPareja).map((p) => [p.id, p]));
+      const porRonda = new Map<number, EnfrentamientoVista[]>();
+      for (const row of eRows.map(aEnfrentamiento)) {
+        const lista = porRonda.get(row.ronda) ?? [];
+        lista.push(enfrentamientoAVista(row, indice));
+        porRonda.set(row.ronda, lista);
+      }
+      return [...porRonda.entries()]
+        .sort((a, b) => b[0] - a[0])
+        .map(([ronda, enfrentamientos]) => ({ ronda, enfrentamientos }));
+    },
+
+    /** Enfrentamiento enriquecido para la página de resultado. */
+    async getEnfrentamientoVista(id: number): Promise<EnfrentamientoVista | null> {
+      const eRows = await database
+        .select()
+        .from(enfrentamientos)
+        .where(eq(enfrentamientos.id, id));
+      if (!eRows[0]) return null;
+      const pRows = await database.select().from(parejas);
+      const indice = new Map(pRows.map(aPareja).map((p) => [p.id, p]));
+      return enfrentamientoAVista(aEnfrentamiento(eRows[0]), indice);
     },
   };
 }
