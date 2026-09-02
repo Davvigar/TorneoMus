@@ -14,7 +14,6 @@ import {
   contarParejasActivas,
   enfrentamientosRondaActual,
   parejaGanadora,
-  parejasActivasListado,
   pendientesRondaActual,
   puedeGenerarNuevaRonda,
   rondaActual,
