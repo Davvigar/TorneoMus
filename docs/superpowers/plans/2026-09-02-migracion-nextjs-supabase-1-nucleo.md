@@ -2435,7 +2435,7 @@ describe("guardas de admin", () => {
   it("generarRondaAction con admin llama al repo", async () => {
     estadoAuth.admin = true;
     repoMock.generarSiguienteRonda.mockResolvedValue(3);
-    const r = await generarRondaAction();
+    const r = await generarRondaAction(null, new FormData());
     expect(r).toEqual({
       ok: true,
       mensaje: "Nueva ronda generada con 3 enfrentamientos",
@@ -2544,7 +2544,10 @@ export async function desbloquearAdminAction(
   return { ok: true, mensaje: "Modo administrador activado" };
 }
 
-export async function bloquearAdminAction(): Promise<AccionResultado> {
+export async function bloquearAdminAction(
+  _prev: AccionResultado | null,
+  _formData: FormData,
+): Promise<AccionResultado> {
   await desactivarAdmin();
   revalidatePath("/", "layout");
   return { ok: true, mensaje: "Modo administrador desactivado" };
@@ -2573,7 +2576,10 @@ export async function registrarParejaAction(
   }
 }
 
-export async function generarRondaAction(): Promise<AccionResultado> {
+export async function generarRondaAction(
+  _prev: AccionResultado | null,
+  _formData: FormData,
+): Promise<AccionResultado> {
   if (!(await esAdmin())) return SIN_ADMIN;
   try {
     const n = await repo.generarSiguienteRonda();
@@ -2628,7 +2634,10 @@ export async function deshacerResultadoAction(
   }
 }
 
-export async function reiniciarTorneoAction(): Promise<AccionResultado> {
+export async function reiniciarTorneoAction(
+  _prev: AccionResultado | null,
+  _formData: FormData,
+): Promise<AccionResultado> {
   if (!(await esAdmin())) return SIN_ADMIN;
   try {
     await repo.reiniciarTorneo();
