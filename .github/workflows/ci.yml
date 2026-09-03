@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, migracion-nextjs-supabase]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: torneomus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/torneomus_test
+      ADMIN_PASSWORD: test1234
+      AUTH_SECRET: ci-secret-1234567890
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      # build:e2e / start:e2e usan `dotenv -e .env.test`, que en CI no existe (gitignored).
+      - run: |
+          printf 'DATABASE_URL=%s\nADMIN_PASSWORD=%s\nAUTH_SECRET=%s\n' \
+            "$DATABASE_URL" "$ADMIN_PASSWORD" "$AUTH_SECRET" > .env.test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:e2e
+      - run: npm run e2e
