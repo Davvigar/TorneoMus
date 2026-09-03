@@ -38,7 +38,7 @@ export default async function RootLayout({
         </header>
         <main className="mx-auto max-w-4xl px-4 py-6 sm:py-8">{children}</main>
         <footer className="mx-auto max-w-4xl px-4 pb-8 pt-4 text-center text-sm text-tinta-suave">
-          Fiestas de villamantilla · Torneo de Mus
+          Fiestas de Villamantilla · Torneo de Mus
         </footer>
       </body>
     </html>
