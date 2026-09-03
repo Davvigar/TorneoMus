@@ -6,6 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
+    "start:e2e": "dotenv -e .env.test -- next start -p 3000",
+    "build:e2e": "dotenv -e .env.test -- next build",
+    "e2e": "playwright test",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -27,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
