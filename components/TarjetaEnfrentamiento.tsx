@@ -19,8 +19,8 @@ export function TarjetaEnfrentamiento({
     <div className={`rounded-2xl border ${borde} bg-papel p-4 shadow-sm`}>
       <div className="mb-2 text-xs uppercase tracking-wide text-tinta-suave">
         {enf.esDescanso
-          ? `Quien libra · Ronda ${enf.ronda}`
-          : `Enfrentamiento #${enf.id}`}
+          ? `Han descansado · Ronda ${enf.ronda}`
+          : `Enfrentamiento #${enf.id} · Ronda ${enf.ronda}`}
       </div>
 
       <div className="flex items-center justify-between gap-2">

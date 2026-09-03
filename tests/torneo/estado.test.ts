@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { Enfrentamiento, Pareja } from "@/lib/torneo/types";
 import {
   rondaActual,
-  rondaAMostrar,
+  rondasVisibles,
   enfrentamientosRondaActual,
   parejasActivasListado,
   contarParejasActivas,
@@ -29,41 +29,45 @@ describe("rondaActual", () => {
   });
 });
 
-describe("rondaAMostrar", () => {
-  it("normalmente es rondaActual", () => {
-    expect(rondaAMostrar([enf({ id: 1, ronda: 1, jugado: false })])).toBe(1);
+describe("rondasVisibles", () => {
+  it("solo la ronda actual cuando las anteriores están completas", () => {
+    expect(rondasVisibles([])).toEqual([]);
+    expect(rondasVisibles([enf({ id: 1, ronda: 1, jugado: false })])).toEqual([1]);
     expect(
-      rondaAMostrar([
+      rondasVisibles([
         enf({ id: 1, ronda: 1, jugado: true }),
-        enf({ id: 2, ronda: 3, jugado: false }),
+        enf({ id: 2, ronda: 2, jugado: true }),
+        enf({ id: 3, ronda: 3, jugado: false }),
       ]),
-    ).toBe(3);
+    ).toEqual([3]);
   });
-  it("es 1 si rondaActual==2 y la ronda 1 tiene pendientes", () => {
+  it("incluye la ronda anterior si aún tiene pendientes (flujo primeras 2 rondas)", () => {
     const es = [
       enf({ id: 1, ronda: 1, jugado: false }),
-      enf({ id: 2, ronda: 2, jugado: false }),
+      enf({ id: 2, ronda: 1, jugado: true }),
+      enf({ id: 3, ronda: 2, jugado: false }),
+      enf({ id: 4, ronda: 2, jugado: false }),
     ];
-    expect(rondaAMostrar(es)).toBe(1);
+    expect(rondasVisibles(es)).toEqual([1, 2]);
   });
-  it("es 2 si rondaActual==2 y la ronda 1 está completa", () => {
+  it("deja de incluir la ronda 1 en cuanto se completa", () => {
     const es = [
       enf({ id: 1, ronda: 1, jugado: true }),
       enf({ id: 2, ronda: 2, jugado: false }),
     ];
-    expect(rondaAMostrar(es)).toBe(2);
+    expect(rondasVisibles(es)).toEqual([2]);
   });
 });
 
-describe("enfrentamientosRondaActual / pendientesRondaActual usan rondaAMostrar", () => {
+describe("enfrentamientosRondaActual / pendientesRondaActual usan rondasVisibles", () => {
   const es = [
     enf({ id: 1, ronda: 1, jugado: false }),
     enf({ id: 2, ronda: 1, jugado: true }),
     enf({ id: 3, ronda: 2, jugado: false }),
   ];
-  it("muestra los de la ronda 1 mientras esté pendiente", () => {
-    expect(enfrentamientosRondaActual(es).map((e) => e.id)).toEqual([1, 2]);
-    expect(pendientesRondaActual(es)).toBe(1);
+  it("muestra R1 y R2 a la vez mientras la R1 tenga pendientes", () => {
+    expect(enfrentamientosRondaActual(es).map((e) => e.id)).toEqual([1, 2, 3]);
+    expect(pendientesRondaActual(es)).toBe(2);
   });
   it("vacío / 0 sin rondas", () => {
     expect(enfrentamientosRondaActual([])).toEqual([]);

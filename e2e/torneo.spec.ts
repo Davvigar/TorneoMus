@@ -46,7 +46,7 @@ test("camino feliz: registrar, generar ronda, resultado, clasificación", async 
   await expect(page.getByText("Parejas activas")).toBeVisible();
 });
 
-test("flujo primeras 2 rondas: genera R1+R2 y la UI muestra la R1 hasta completarla", async ({
+test("flujo primeras 2 rondas: R1 y R2 disponibles a la vez, resultados en cualquier orden", async ({
   page,
 }) => {
   await registrarParejas(page, ["Uno", "Dos", "Tres", "Cuatro", "Cinco", "Seis"]);
@@ -54,10 +54,29 @@ test("flujo primeras 2 rondas: genera R1+R2 y la UI muestra la R1 hasta completa
   await page.getByRole("button", { name: "Generar primeras 2 rondas" }).click();
   await expect(page.getByText(/Primeras dos rondas generadas/)).toBeVisible();
 
-  await expect(page.getByText(/Enfrentamientos.*Ronda 1/)).toBeVisible();
-  await expect(page.getByText(/2 disponible/)).toBeVisible();
+  // Se muestran las dos rondas y sus 6 enfrentamientos a la vez.
+  await expect(page.getByText(/Enfrentamientos.*Rondas 1 y 2/)).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Registrar resultado" }),
+  ).toHaveCount(6);
 
-  for (let i = 0; i < 3; i++) {
+  // Meter el resultado de un enfrentamiento de la RONDA 2 primero (nth(3): los
+  // 3 primeros enlaces son de la R1, los 3 siguientes de la R2). Sin tocar la R1.
+  await page.getByRole("link", { name: "Registrar resultado" }).nth(3).click();
+  await expect(
+    page.getByRole("heading", { name: "Registrar resultado" }),
+  ).toBeVisible();
+  await expect(page.getByText(/Ronda 2/)).toBeVisible();
+  await page.getByRole("radio").first().check();
+  await page.getByRole("button", { name: "Confirmar resultado" }).click();
+  await expect(page.getByText("Resultado registrado correctamente")).toBeVisible();
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
+
+  // Quedan 5 por meter (2 de R2, 3 de R1); se pueden meter todos.
+  await expect(
+    page.getByRole("link", { name: "Registrar resultado" }),
+  ).toHaveCount(5);
+  for (let i = 0; i < 5; i++) {
     await page.getByRole("link", { name: "Registrar resultado" }).first().click();
     await page.getByRole("radio").first().check();
     await page.getByRole("button", { name: "Confirmar resultado" }).click();
@@ -67,5 +86,8 @@ test("flujo primeras 2 rondas: genera R1+R2 y la UI muestra la R1 hasta completa
     await page.getByRole("link", { name: "Volver al inicio" }).click();
   }
 
-  await expect(page.getByText(/Enfrentamientos.*Ronda 2/)).toBeVisible();
+  // Con R1 y R2 completas, ya se puede generar la ronda 3.
+  await expect(
+    page.getByRole("button", { name: "Generar ronda" }),
+  ).toBeEnabled();
 });

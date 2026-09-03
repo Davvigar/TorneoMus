@@ -12,26 +12,31 @@ function hayPendientesEnRonda(
 }
 
 /**
- * Ronda que se muestra en la UI. Port de TorneoService.obtenerEstadoTorneo
- * (origin/main): normalmente `rondaActual`, pero si `rondaActual == 2` y la
- * ronda 1 tiene enfrentamientos pendientes, se muestra la ronda 1 (flujo
- * "primeras dos rondas": se generan la 1 y la 2 de golpe, pero hay que
- * completar la 1 antes de que se "active" la 2).
+ * Rondas cuyos enfrentamientos se muestran (y se pueden resolver) en el
+ * dashboard: la ronda actual y, hacia atrás, las rondas anteriores que aún
+ * tengan enfrentamientos pendientes. Esto cubre el flujo "primeras dos rondas":
+ * se generan la 1 y la 2 de golpe y se pueden meter resultados de cualquiera de
+ * las dos, en cualquier orden. En cuanto una ronda anterior queda completa,
+ * deja de mostrarse.
  */
-export function rondaAMostrar(enfrentamientos: Enfrentamiento[]): number {
+export function rondasVisibles(enfrentamientos: Enfrentamiento[]): number[] {
   const r = rondaActual(enfrentamientos);
-  if (r === 2 && hayPendientesEnRonda(enfrentamientos, 1)) return 1;
-  return r;
+  if (r === 0) return [];
+  const visibles = [r];
+  for (let ronda = r - 1; ronda >= 1; ronda--) {
+    if (!hayPendientesEnRonda(enfrentamientos, ronda)) break;
+    visibles.unshift(ronda);
+  }
+  return visibles;
 }
 
 export function enfrentamientosRondaActual(
   enfrentamientos: Enfrentamiento[],
 ): Enfrentamiento[] {
-  const r = rondaAMostrar(enfrentamientos);
-  if (r === 0) return [];
+  const rondas = new Set(rondasVisibles(enfrentamientos));
   return enfrentamientos
-    .filter((e) => e.ronda === r)
-    .sort((a, b) => a.id - b.id);
+    .filter((e) => rondas.has(e.ronda))
+    .sort((a, b) => a.ronda - b.ronda || a.id - b.id);
 }
 
 /** Parejas en juego: criterio único `eliminada = false` (flag). */
@@ -44,15 +49,14 @@ export function contarParejasActivas(parejas: Pareja[]): number {
 }
 
 export function pendientesRondaActual(enfrentamientos: Enfrentamiento[]): number {
-  const r = rondaAMostrar(enfrentamientos);
-  if (r === 0) return 0;
-  return enfrentamientos.filter((e) => e.ronda === r && !e.jugado).length;
+  const rondas = new Set(rondasVisibles(enfrentamientos));
+  return enfrentamientos.filter((e) => rondas.has(e.ronda) && !e.jugado).length;
 }
 
 /**
- * Port de TorneoService.puedeGenerarNuevaRonda (origin/main).
- * Con `rondaActual == 2` y la ronda 1 aún con pendientes, NO se puede generar la
- * ronda 3 (hay que terminar la 1 primero).
+ * No se puede generar la siguiente ronda hasta que todas las rondas visibles
+ * (la actual y las anteriores aún pendientes, p. ej. R1 y R2 del flujo "primeras
+ * dos rondas") estén completas.
  */
 export function puedeGenerarNuevaRonda(
   parejas: Pareja[],
@@ -61,8 +65,9 @@ export function puedeGenerarNuevaRonda(
   if (contarParejasActivas(parejas) < 2) return false;
   const r = rondaActual(enfrentamientos);
   if (r === 0) return true;
-  if (r === 2 && hayPendientesEnRonda(enfrentamientos, 1)) return false;
-  return !hayPendientesEnRonda(enfrentamientos, r);
+  return rondasVisibles(enfrentamientos).every(
+    (ronda) => !hayPendientesEnRonda(enfrentamientos, ronda),
+  );
 }
 
 /** ≥ 2 parejas activas (flag) y el torneo aún no ha empezado (ronda 0). */

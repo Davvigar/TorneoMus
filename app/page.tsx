@@ -21,19 +21,20 @@ export default async function Inicio() {
   const enfrentamientos = estado.enfrentamientosActuales.map((e) =>
     enfrentamientoAVista(e, indice),
   );
+  const rondasEnJuego = [
+    ...new Set(estado.enfrentamientosActuales.map((e) => e.ronda)),
+  ].sort((a, b) => a - b);
+  const tituloRondas =
+    rondasEnJuego.length === 0
+      ? ""
+      : rondasEnJuego.length === 1
+        ? ` · Ronda ${rondasEnJuego[0]}`
+        : ` · Rondas ${rondasEnJuego.join(" y ")}`;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          etiqueta="Ronda"
-          valor={
-            estado.rondaAMostrar !== estado.rondaActual
-              ? `${estado.rondaAMostrar} · ${estado.rondaActual} disponible`
-              : estado.rondaActual
-          }
-          tono="terracota"
-        />
+        <Stat etiqueta="Ronda" valor={estado.rondaActual} tono="terracota" />
         <Stat
           etiqueta="Parejas activas"
           valor={estado.parejasActivasCount}
@@ -60,7 +61,7 @@ export default async function Inicio() {
         />
       )}
 
-      <Card titulo={`Enfrentamientos${estado.rondaAMostrar > 0 ? ` · Ronda ${estado.rondaAMostrar}` : ""}`}>
+      <Card titulo={`Enfrentamientos${tituloRondas}`}>
         {enfrentamientos.length === 0 ? (
           <Alerta tono="info">
             Todavía no hay enfrentamientos. {admin ? "Registra parejas y genera la primera ronda." : ""}

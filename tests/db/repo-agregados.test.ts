@@ -26,7 +26,6 @@ describe("repo.getEstadoTorneo", () => {
     const e = await repo.getEstadoTorneo();
     expect(e).toMatchObject({
       rondaActual: 0,
-      rondaAMostrar: 0,
       totalParejas: 0,
       parejasActivasCount: 0,
       pendientesRondaActual: 0,

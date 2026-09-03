@@ -28,8 +28,6 @@ export interface ResultadoRonda {
 
 export interface EstadoTorneo {
   rondaActual: number;
-  /** Ronda que la UI debe mostrar (= rondaActual salvo en el flujo "primeras 2 rondas"). */
-  rondaAMostrar: number;
   totalParejas: number;
   parejasActivasCount: number;
   enfrentamientosActuales: Enfrentamiento[];

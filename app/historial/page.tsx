@@ -27,7 +27,7 @@ export default async function Historial() {
                 >
                   {e.esDescanso ? (
                     <p>
-                      <span className="text-tinta-suave">Quien libra:</span>{" "}
+                      <span className="text-tinta-suave">Han descansado:</span>{" "}
                       <strong>{e.pareja1.nombre}</strong>
                     </p>
                   ) : (

@@ -19,7 +19,6 @@ import {
   puedeGenerarNuevaRonda,
   puedeGenerarPrimerasDosRondas,
   rondaActual,
-  rondaAMostrar,
   torneoTerminado,
 } from "@/lib/torneo/estado";
 import { enfrentamientoAVista } from "@/lib/torneo/vista";
@@ -310,7 +309,6 @@ export function crearRepo(database: Db = dbPorDefecto) {
       const es = eRows.map(aEnfrentamiento);
       return {
         rondaActual: rondaActual(es),
-        rondaAMostrar: rondaAMostrar(es),
         totalParejas: ps.length,
         parejasActivasCount: contarParejasActivas(ps),
         enfrentamientosActuales: enfrentamientosRondaActual(es),
