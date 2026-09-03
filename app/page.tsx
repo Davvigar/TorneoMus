@@ -66,11 +66,42 @@ export default async function Inicio() {
           <Alerta tono="info">
             Todavía no hay enfrentamientos. {admin ? "Registra parejas y genera la primera ronda." : ""}
           </Alerta>
-        ) : (
+        ) : rondasEnJuego.length === 1 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {enfrentamientos.map((e) => (
               <TarjetaEnfrentamiento key={e.id} enf={e} admin={admin} />
             ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {rondasEnJuego.map((ronda, i) => {
+              const delaRonda = enfrentamientos.filter((e) => e.ronda === ronda);
+              const pendientes = delaRonda.filter(
+                (e) => !e.jugado && !e.esDescanso,
+              ).length;
+              return (
+                <div
+                  key={ronda}
+                  className={
+                    i > 0 ? "border-t border-borde pt-5" : undefined
+                  }
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    <h3 className="font-display text-base">Ronda {ronda}</h3>
+                    <span className="rounded-full border border-borde bg-crema px-2 py-0.5 text-xs text-tinta-suave">
+                      {pendientes > 0
+                        ? `${pendientes} pendiente(s)`
+                        : "completa"}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {delaRonda.map((e) => (
+                      <TarjetaEnfrentamiento key={e.id} enf={e} admin={admin} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
