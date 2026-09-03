@@ -97,6 +97,23 @@ export async function generarRondaAction(
   }
 }
 
+export async function generarPrimerasDosRondasAction(
+  _prev: AccionResultado | null,
+  _formData: FormData,
+): Promise<AccionResultado> {
+  if (!(await esAdmin())) return SIN_ADMIN;
+  try {
+    const n = await repo.generarPrimerasDosRondas();
+    revalidarTorneo();
+    return {
+      ok: true,
+      mensaje: `Primeras dos rondas generadas: ${n} enfrentamientos en total`,
+    };
+  } catch (e) {
+    return mensajeError(e, "Error al generar las primeras dos rondas");
+  }
+}
+
 export async function registrarResultadoAction(
   _prev: AccionResultado | null,
   formData: FormData,

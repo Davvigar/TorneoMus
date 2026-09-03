@@ -1,0 +1,74 @@
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { crearDbTest, limpiar } from "@/lib/db/testing";
+import { crearRepo } from "@/lib/db/torneo-repo";
+
+const { db, cerrar } = crearDbTest();
+const repo = crearRepo(db);
+
+beforeEach(() => limpiar(db));
+afterAll(() => cerrar());
+
+async function registrar(...nombres: string[]) {
+  for (const n of nombres) await repo.registrarPareja(n);
+}
+
+describe("repo.generarPrimerasDosRondas", () => {
+  it("genera la ronda 1 y la 2; la UI muestra la ronda 1 hasta completarla", async () => {
+    await registrar("A", "B", "C", "D");
+    const n = await repo.generarPrimerasDosRondas();
+    expect(n).toBe(4); // 2 enfrentamientos por ronda
+
+    const es = await repo.listarEnfrentamientos();
+    expect(es.filter((e) => e.ronda === 1)).toHaveLength(2);
+    expect(es.filter((e) => e.ronda === 2)).toHaveLength(2);
+
+    const estado = await repo.getEstadoTorneo();
+    expect(estado.rondaActual).toBe(2);
+    expect(estado.rondaAMostrar).toBe(1);
+    expect(estado.enfrentamientosActuales.every((e) => e.ronda === 1)).toBe(true);
+    expect(estado.puedeGenerarNuevaRonda).toBe(false); // R1 aún pendiente
+    expect(estado.puedeGenerarPrimerasDosRondas).toBe(false);
+  });
+
+  it("la ronda 2 no repite los emparejamientos de la ronda 1", async () => {
+    await registrar("A", "B", "C", "D", "E", "F");
+    await repo.generarPrimerasDosRondas();
+    const es = await repo.listarEnfrentamientos();
+    const cl = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+    const r1 = new Set(
+      es.filter((e) => e.ronda === 1 && e.pareja2Id !== null).map((e) => cl(e.pareja1Id, e.pareja2Id!)),
+    );
+    for (const e of es.filter((e) => e.ronda === 2 && e.pareja2Id !== null)) {
+      expect(r1.has(cl(e.pareja1Id, e.pareja2Id!))).toBe(false);
+    }
+  });
+
+  it("al completar la ronda 1, la UI pasa a la ronda 2 y se puede generar la 3", async () => {
+    await registrar("A", "B", "C", "D");
+    await repo.generarPrimerasDosRondas();
+    const r1 = (await repo.listarEnfrentamientos()).filter((e) => e.ronda === 1);
+    for (const e of r1) await repo.registrarResultado(e.id, e.pareja1Id);
+
+    const estado = await repo.getEstadoTorneo();
+    expect(estado.rondaAMostrar).toBe(2);
+    expect(estado.enfrentamientosActuales.every((e) => e.ronda === 2)).toBe(true);
+    expect(estado.puedeGenerarNuevaRonda).toBe(false); // R2 pendiente
+
+    const r2 = (await repo.listarEnfrentamientos()).filter((e) => e.ronda === 2);
+    for (const e of r2) await repo.registrarResultado(e.id, e.pareja1Id);
+    const estado2 = await repo.getEstadoTorneo();
+    expect(estado2.puedeGenerarNuevaRonda).toBe(true);
+    await repo.generarSiguienteRonda();
+    expect(
+      (await repo.listarEnfrentamientos()).some((e) => e.ronda === 3),
+    ).toBe(true);
+  });
+
+  it("rechaza generarlas si el torneo ya empezó", async () => {
+    await registrar("A", "B");
+    await repo.generarSiguienteRonda();
+    await expect(repo.generarPrimerasDosRondas()).rejects.toThrow(
+      "Solo se pueden generar las primeras dos rondas cuando el torneo está en ronda 0",
+    );
+  });
+});

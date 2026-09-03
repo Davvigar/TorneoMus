@@ -23,14 +23,23 @@ export function perdedorDe(
 }
 
 /**
- * Recalcula `derrotas` y `eliminada` de cada pareja contando las derrotas
- * reales sobre los enfrentamientos jugados. `eliminada = derrotas >= 2`,
- * réplica de Pareja.agregarDerrota() (sin condición de ronda). No muta la entrada.
+ * Recalcula `derrotas` y `eliminada` de cada pareja contando las derrotas reales
+ * sobre los enfrentamientos jugados.
+ *
+ * Regla de eliminación portada de TorneoService (origin/main):
+ *   `eliminada = derrotas >= 2 && rondaActual >= 2`
+ * donde `rondaActual` es el número de ronda máximo entre los enfrentamientos.
+ * En la ronda 1 nadie se elimina aunque acumule 2 derrotas; desde que existe una
+ * ronda 2, toda pareja con 2+ derrotas queda eliminada. Esto hace innecesario el
+ * `verificarEliminacionParejas()` de Java: el estado siempre queda consistente.
+ *
+ * No muta la entrada.
  */
 export function recomputarEstadoParejas(
   parejas: Pareja[],
   enfrentamientos: Enfrentamiento[],
 ): Pareja[] {
+  const rondaMax = enfrentamientos.reduce((m, e) => Math.max(m, e.ronda), 0);
   const derrotasPorId = new Map<number, number>();
   for (const e of enfrentamientos) {
     if (!e.jugado || e.ganadorId === null || e.pareja2Id === null) continue;
@@ -40,6 +49,6 @@ export function recomputarEstadoParejas(
   }
   return parejas.map((p) => {
     const derrotas = derrotasPorId.get(p.id) ?? 0;
-    return { ...p, derrotas, eliminada: derrotas >= 2 };
+    return { ...p, derrotas, eliminada: derrotas >= 2 && rondaMax >= 2 };
   });
 }

@@ -25,7 +25,15 @@ export default async function Inicio() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat etiqueta="Ronda" valor={estado.rondaActual} tono="terracota" />
+        <Stat
+          etiqueta="Ronda"
+          valor={
+            estado.rondaAMostrar !== estado.rondaActual
+              ? `${estado.rondaAMostrar} · ${estado.rondaActual} disponible`
+              : estado.rondaActual
+          }
+          tono="terracota"
+        />
         <Stat
           etiqueta="Parejas activas"
           valor={estado.parejasActivasCount}
@@ -46,12 +54,13 @@ export default async function Inicio() {
       {admin && (
         <PanelAdmin
           puedeGenerarRonda={estado.puedeGenerarNuevaRonda}
+          puedeGenerarPrimerasDosRondas={estado.puedeGenerarPrimerasDosRondas}
           pendientes={estado.pendientesRondaActual}
           torneoTerminado={estado.torneoTerminado}
         />
       )}
 
-      <Card titulo={`Enfrentamientos${estado.rondaActual > 0 ? ` · Ronda ${estado.rondaActual}` : ""}`}>
+      <Card titulo={`Enfrentamientos${estado.rondaAMostrar > 0 ? ` · Ronda ${estado.rondaAMostrar}` : ""}`}>
         {enfrentamientos.length === 0 ? (
           <Alerta tono="info">
             Todavía no hay enfrentamientos. {admin ? "Registra parejas y genera la primera ronda." : ""}

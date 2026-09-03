@@ -40,22 +40,33 @@ describe("recomputarEstadoParejas", () => {
       pareja({ id: 3, nombre: "C" }),
     ];
     const es = [
-      enf({ id: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
-      enf({ id: 2, pareja1Id: 2, pareja2Id: 3, jugado: true, ganadorId: 3 }),
-      enf({ id: 3, pareja1Id: 1, pareja2Id: 3, jugado: false, ganadorId: null }),
+      enf({ id: 1, ronda: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+      enf({ id: 2, ronda: 2, pareja1Id: 2, pareja2Id: 3, jugado: true, ganadorId: 3 }),
+      enf({ id: 3, ronda: 2, pareja1Id: 1, pareja2Id: 3, jugado: false, ganadorId: null }),
     ];
     const r = recomputarEstadoParejas(ps, es);
     expect(r.find((p) => p.id === 2)!.derrotas).toBe(2);
-    expect(r.find((p) => p.id === 2)!.eliminada).toBe(true);
     expect(r.find((p) => p.id === 1)!.derrotas).toBe(0);
-    expect(r.find((p) => p.id === 1)!.eliminada).toBe(false);
   });
 
-  it("elimina a las 2 derrotas sin mirar la ronda (réplica de agregarDerrota)", () => {
+  it("NO elimina con 2 derrotas si la ronda máxima es 1", () => {
     const ps = [pareja({ id: 1, nombre: "A" }), pareja({ id: 2, nombre: "B" })];
     const es = [
       enf({ id: 1, ronda: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
-      enf({ id: 2, ronda: 2, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+      enf({ id: 2, ronda: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+    ];
+    const r = recomputarEstadoParejas(ps, es);
+    expect(r.find((p) => p.id === 2)!.derrotas).toBe(2);
+    expect(r.find((p) => p.id === 2)!.eliminada).toBe(false);
+  });
+
+  it("elimina con 2 derrotas en cuanto existe una ronda 2", () => {
+    const ps = [pareja({ id: 1, nombre: "A" }), pareja({ id: 2, nombre: "B" })];
+    const es = [
+      enf({ id: 1, ronda: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+      // segunda derrota de B fue en ronda 1, pero ya hay enfrentamientos de ronda 2
+      enf({ id: 2, ronda: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+      enf({ id: 3, ronda: 2, pareja1Id: 1, pareja2Id: 2, jugado: false, ganadorId: null }),
     ];
     const r = recomputarEstadoParejas(ps, es);
     expect(r.find((p) => p.id === 2)!.eliminada).toBe(true);
@@ -63,7 +74,7 @@ describe("recomputarEstadoParejas", () => {
 
   it("ignora descansos y no muta la entrada", () => {
     const ps = [pareja({ id: 1, nombre: "A", derrotas: 5, eliminada: true })];
-    const es = [enf({ id: 1, pareja1Id: 1, pareja2Id: null, jugado: true, ganadorId: null })];
+    const es = [enf({ id: 1, ronda: 3, pareja1Id: 1, pareja2Id: null, jugado: true, ganadorId: null })];
     const r = recomputarEstadoParejas(ps, es);
     expect(r[0].derrotas).toBe(0);
     expect(r[0].eliminada).toBe(false);
@@ -72,16 +83,13 @@ describe("recomputarEstadoParejas", () => {
 
   it("recalcula correctamente tras deshacer (un jugado menos)", () => {
     const ps = [pareja({ id: 1, nombre: "A" }), pareja({ id: 2, nombre: "B" })];
-    const esAntes = [
-      enf({ id: 1, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
-      enf({ id: 2, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+    const base = [
+      enf({ id: 1, ronda: 2, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
+      enf({ id: 2, ronda: 2, pareja1Id: 1, pareja2Id: 2, jugado: true, ganadorId: 1 }),
     ];
-    expect(recomputarEstadoParejas(ps, esAntes).find((p) => p.id === 2)!.eliminada).toBe(true);
-    const esDespues = [
-      esAntes[0],
-      { ...esAntes[1], jugado: false, ganadorId: null },
-    ];
-    const r = recomputarEstadoParejas(ps, esDespues);
+    expect(recomputarEstadoParejas(ps, base).find((p) => p.id === 2)!.eliminada).toBe(true);
+    const trasDeshacer = [base[0], { ...base[1], jugado: false, ganadorId: null }];
+    const r = recomputarEstadoParejas(ps, trasDeshacer);
     expect(r.find((p) => p.id === 2)!.derrotas).toBe(1);
     expect(r.find((p) => p.id === 2)!.eliminada).toBe(false);
   });

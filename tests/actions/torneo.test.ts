@@ -5,6 +5,7 @@ const { estadoAuth, repoMock } = vi.hoisted(() => ({
   repoMock: {
     registrarPareja: vi.fn(),
     generarSiguienteRonda: vi.fn(),
+    generarPrimerasDosRondas: vi.fn(),
     registrarResultado: vi.fn(),
     deshacerResultado: vi.fn(),
     reiniciarTorneo: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import {
   registrarParejaAction,
   generarRondaAction,
+  generarPrimerasDosRondasAction,
   registrarResultadoAction,
   desbloquearAdminAction,
 } from "@/app/actions/torneo";
@@ -56,6 +58,22 @@ describe("guardas de admin", () => {
     expect(r).toEqual({
       ok: true,
       mensaje: "Nueva ronda generada con 3 enfrentamientos",
+    });
+  });
+
+  it("generarPrimerasDosRondasAction sin admin devuelve error", async () => {
+    const r = await generarPrimerasDosRondasAction(null, new FormData());
+    expect(r.ok).toBe(false);
+    expect(repoMock.generarPrimerasDosRondas).not.toHaveBeenCalled();
+  });
+
+  it("generarPrimerasDosRondasAction con admin llama al repo", async () => {
+    estadoAuth.admin = true;
+    repoMock.generarPrimerasDosRondas.mockResolvedValue(6);
+    const r = await generarPrimerasDosRondasAction(null, new FormData());
+    expect(r).toEqual({
+      ok: true,
+      mensaje: "Primeras dos rondas generadas: 6 enfrentamientos en total",
     });
   });
 });

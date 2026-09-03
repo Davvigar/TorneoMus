@@ -6,6 +6,7 @@ import { Boton } from "@/components/ui/Boton";
 import { BotonAccion } from "@/components/BotonAccion";
 import { AlertaAccion } from "@/components/AlertaAccion";
 import {
+  generarPrimerasDosRondasAction,
   generarRondaAction,
   registrarParejaAction,
   reiniciarTorneoAction,
@@ -13,10 +14,12 @@ import {
 
 export function PanelAdmin({
   puedeGenerarRonda,
+  puedeGenerarPrimerasDosRondas,
   pendientes,
   torneoTerminado,
 }: {
   puedeGenerarRonda: boolean;
+  puedeGenerarPrimerasDosRondas: boolean;
   pendientes: number;
   torneoTerminado: boolean;
 }) {
@@ -53,6 +56,15 @@ export function PanelAdmin({
             <span className="rounded-full bg-ambar/20 px-2 py-0.5 text-center text-sm">
               {pendientes} enfrentamiento(s) pendiente(s)
             </span>
+          )}
+          {puedeGenerarPrimerasDosRondas && (
+            <BotonAccion
+              accion={generarPrimerasDosRondasAction}
+              variante="primario"
+              disabled={torneoTerminado}
+            >
+              Generar primeras 2 rondas
+            </BotonAccion>
           )}
           <BotonAccion
             accion={generarRondaAction}

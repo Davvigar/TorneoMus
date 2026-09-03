@@ -26,13 +26,23 @@ describe("repo.getEstadoTorneo", () => {
     const e = await repo.getEstadoTorneo();
     expect(e).toMatchObject({
       rondaActual: 0,
+      rondaAMostrar: 0,
       totalParejas: 0,
       parejasActivasCount: 0,
       pendientesRondaActual: 0,
       puedeGenerarNuevaRonda: false,
+      puedeGenerarPrimerasDosRondas: false,
       torneoTerminado: false,
       parejaGanadora: null,
     });
+  });
+
+  it("puedeGenerarPrimerasDosRondas con >=2 parejas y ronda 0", async () => {
+    await repo.registrarPareja("A");
+    await repo.registrarPareja("B");
+    const e = await repo.getEstadoTorneo();
+    expect(e.puedeGenerarPrimerasDosRondas).toBe(true);
+    expect(e.puedeGenerarNuevaRonda).toBe(true);
   });
 
   it("cuenta pendientes y permite/deniega nueva ronda", async () => {

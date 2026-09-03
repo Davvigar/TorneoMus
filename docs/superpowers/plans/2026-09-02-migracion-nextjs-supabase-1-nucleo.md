@@ -8,6 +8,15 @@
 
 **Tech Stack:** Next.js 15, React 19, TypeScript, Drizzle ORM + `postgres` (postgres.js), PostgreSQL, Zod, Vitest, Node 22.
 
+> **NOTA (2026-09-03):** este plan portó la lógica del torneo desde una versión
+> **desactualizada** de `TorneoService.java`. La lógica real (aleatoria, con flujo
+> "primeras dos rondas", eliminación condicionada a la ronda 2, etc.) se re-portó
+> después desde `origin/main`; ver el **Addendum** en
+> `docs/superpowers/specs/2026-09-02-migracion-nextjs-supabase-design.md` y los
+> ficheros `lib/torneo/*`, `lib/db/torneo-repo.ts` y sus tests, que son la fuente
+> de verdad actual. La infraestructura de este plan (scaffold, BD, auth, acciones)
+> sí es correcta.
+
 **Comportamiento portado del código Java (referencia — se conserva en el historial de git):**
 - `src/main/java/torneomus/service/TorneoService.java`
 - `src/main/java/torneomus/entity/Pareja.java`
