@@ -1,8 +1,107 @@
 # Migración de TorneoMus a Next.js + Supabase
 
 **Fecha:** 2026-09-02
-**Estado:** Diseño aprobado
+**Estado:** Diseño aprobado · **Addendum 2026-09-03** (ver más abajo)
 **Autor:** David Vigara (con Claude)
+
+---
+
+## Addendum 2026-09-03 — la lógica se porta desde `origin/main`, no desde el `main` local
+
+Al ir a mergear se descubrió que el `main` local estaba **23 commits por detrás**
+de `origin/main` (lo realmente desplegado). La lógica del torneo de `origin/main`
+es bastante distinta de la versión sobre la que se portó primero. Se re-porta
+desde `origin/main` (`8a259e5`). La infraestructura (scaffold, UI, auth, capa de
+BD, tests, CI, despliegue) se conserva; cambia la lógica de `lib/torneo/`, parte
+del repo, y se añade el flujo "primeras dos rondas".
+
+### Comportamiento real a portar (de `TorneoService.java` en `origin/main`)
+
+**Criterio de "activa": únicamente el flag `eliminada = false`.** Se abandona el
+doble criterio anterior. Generación de ronda, recuento, ganadora y clasificación
+usan todos `eliminada = false`.
+
+**Eliminación:** `eliminada = (derrotas >= 2) && (rondaActual >= 2)`, donde
+`rondaActual` = número de ronda máximo entre los enfrentamientos. Es decir: en
+ronda 1 nadie se elimina aunque acumule 2 derrotas; desde que existe una ronda 2,
+toda pareja con 2+ derrotas queda eliminada. Este valor se **recalcula** en cada
+escritura (registrar/deshacer resultado y también al generar ronda, porque generar
+la ronda 2 sube `rondaActual` a 2 y puede eliminar parejas con 2 derrotas de la
+ronda 1). Sustituye al `verificarEliminacionParejas()` de Java, que era un parche
+para mantener eso consistente.
+
+**"Ya se han enfrentado" = existe una fila `enfrentamiento` entre las dos parejas**
+(cualquier ronda, jugado o no). No se mira la lista `rivales`. La lista `rivales`
+pasa a actualizarse **al registrar el resultado** (no al emparejar) y sirve solo
+para mostrarla en clasificación.
+
+**Emparejamiento de ronda (`generarSiguienteRonda` / `generarRondaEspecifica`):**
+1. Parejas activas (`eliminada = false`); si < 2 → error
+   *"No hay suficientes parejas activas para generar una ronda"*.
+2. **Anti-duplicado:** si ya hay enfrentamientos para esa ronda, devolverlos (no-op).
+3. **Barajado aleatorio** de las parejas (sin semilla reproducible: el orden y los
+   emparejamientos son aleatorios en cada generación).
+4. **Si el número es impar**, una descansa: se ordena por `(descansos, nombre)`, se
+   toma el mínimo de `descansos`, y entre las parejas con ese mínimo se elige **una
+   al azar**. `descansos++`. Descanso = enfrentamiento con `pareja2 = null`, jugado.
+5. **Emparejado recursivo con backtracking** (`intentarEmparejarRecursivo`):
+   - Se elige `p1` **al azar** de las disponibles.
+   - Candidatos = disponibles que **no se han enfrentado** a `p1`.
+   - Si no hay candidatos y no se permiten repeticiones → backtrack.
+   - Los candidatos se ordenan por una heurística de "cuántas opciones sin repetir
+     le quedarían a `p1`" (ascendente, el más restringido primero).
+   - Se prueba cada candidato con backtracking (deshacer si la recursión falla).
+   - **Dos pasadas:** primero sin permitir repeticiones; si falla del todo, se
+     reintenta permitiéndolas solo cuando es inevitable.
+6. Persistir los enfrentamientos generados.
+
+**Flujo "primeras dos rondas" (`generarPrimerasDosRondas`):**
+- Solo cuando `rondaActual == 0`. Si ya existen R1 o R2 → devolver las existentes.
+- Genera la ronda 1 (camino normal) y luego la ronda 2 (el emparejador de la R2 ve
+  los enfrentamientos de la R1 para "ya se han enfrentado").
+- Tras generarlas, `rondaActual` (máx ronda) = 2, pero la UI muestra la ronda 1
+  hasta que se complete: se introduce **`rondaAMostrar`**.
+
+**`rondaAMostrar`:** = `rondaActual`, salvo que `rondaActual == 2` y la ronda 1
+tenga enfrentamientos pendientes → entonces `rondaAMostrar = 1`. Los enfrentamientos
+del dashboard, el conteo de pendientes y "puede generar nueva ronda" usan
+`rondaAMostrar` / esa condición: con `rondaActual == 2` y R1 pendiente, **no** se
+puede generar la ronda 3.
+
+**`puedeGenerarPrimerasDosRondas`:** ≥ 2 activas (flag) y `rondaActual == 0`.
+
+**`registrarResultado` (registrar y editar):**
+- No encontrado → error; descanso → *"Este enfrentamiento es un descanso y no
+  admite resultado"*; ganador que no participa → *"La pareja ganadora no participa
+  en este enfrentamiento"*.
+- Si el ganador es el mismo que ya había → no-op.
+- Se puede **cambiar** el ganador de un enfrentamiento ya jugado. En vez de la
+  lógica incremental de deshacer/rehacer de Java, se **recalcula** todo el estado
+  de las parejas (`derrotas` = nº de derrotas reales sobre enfrentamientos jugados;
+  `eliminada` según la fórmula de arriba). Mismo resultado observable, más robusto.
+- Al registrar, ambas parejas se añaden mutuamente a `rivales`.
+
+**Endpoints Java que NO se portan como tal:**
+- `/torneo/verificar-eliminacion` — innecesario: el recálculo en cada escritura
+  mantiene `eliminada` siempre consistente.
+- La mezcla manual de orden — ya no existe en Java (es automática por ronda).
+
+### Cambios en la interfaz respecto a lo ya construido
+
+- **`PanelAdmin`:** botón **"Generar primeras 2 rondas"** (visible solo cuando
+  `puedeGenerarPrimerasDosRondas`), junto al de "Generar ronda".
+- **Inicio:** el título y la lista de enfrentamientos usan `rondaAMostrar`; si
+  `rondaAMostrar != rondaActual` se indica *"(Ronda N disponible)"*.
+- El resto de pantallas no cambian.
+
+### Nota sobre aleatoriedad y tests
+
+Como el emparejamiento es aleatorio, los tests de `emparejar` verifican
+**invariantes** (todas emparejadas; el que descansa es válido y de mínimos
+descansos; no se repite rival cuando hay alternativa; se repite solo si es
+inevitable) sobre muchas ejecuciones o con un RNG inyectado, no una salida exacta.
+
+---
 
 ## Contexto y motivación
 
