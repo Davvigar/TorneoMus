@@ -29,7 +29,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) onCerrar();
       }}
-      className="rounded-2xl border border-borde p-0 backdrop:bg-black/30"
+      className="m-auto rounded-2xl border border-borde p-0 backdrop:bg-black/30"
     >
       <div className="w-[min(90vw,24rem)] p-5">
         <h2 className="mb-3 text-lg">{titulo}</h2>
