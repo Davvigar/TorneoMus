@@ -57,15 +57,13 @@ export function PanelAdmin({
               {pendientes} enfrentamiento(s) pendiente(s)
             </span>
           )}
-          {puedeGenerarPrimerasDosRondas && (
-            <BotonAccion
-              accion={generarPrimerasDosRondasAction}
-              variante="primario"
-              disabled={torneoTerminado}
-            >
-              Generar primeras 2 rondas
-            </BotonAccion>
-          )}
+          <BotonAccion
+            accion={generarPrimerasDosRondasAction}
+            variante="primario"
+            disabled={!puedeGenerarPrimerasDosRondas || torneoTerminado}
+          >
+            Generar primeras 2 rondas
+          </BotonAccion>
           <BotonAccion
             accion={generarRondaAction}
             variante="secundario"
