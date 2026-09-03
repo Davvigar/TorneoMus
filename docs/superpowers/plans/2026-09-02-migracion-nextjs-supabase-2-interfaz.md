@@ -444,7 +444,7 @@ export function Modal({
       onClick={(e) => {
         if (e.target === ref.current) onCerrar();
       }}
-      className="rounded-2xl border border-borde p-0 backdrop:bg-black/30"
+      className="m-auto rounded-2xl border border-borde p-0 backdrop:bg-black/30"
     >
       <div className="w-[min(90vw,24rem)] p-5">
         <h2 className="mb-3 text-lg">{titulo}</h2>
@@ -1441,10 +1441,11 @@ test("camino feliz: registrar, generar ronda, resultado, clasificación", async 
 }) => {
   await page.goto("/");
 
-  // Desbloquear admin
-  await page.getByRole("button", { name: /Admin/ }).click();
+  // Desbloquear admin (el botón tiene aria-label "Desbloquear administración")
+  await page.getByRole("button", { name: /administración/i }).click();
   await page.getByPlaceholder("Contraseña").fill("test1234");
   await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByText("Administración")).toBeVisible();
 
   // Registrar 4 parejas
   for (const nombre of ["Alfa", "Beta", "Gamma", "Delta"]) {
@@ -1471,13 +1472,17 @@ test("camino feliz: registrar, generar ronda, resultado, clasificación", async 
 
 - [ ] **Step 5: Preparar la BD de test y ejecutar**
 
+El e2e corre contra `torneomus_test` (vía `start:e2e` → `dotenv -e .env.test`). Debe estar
+migrada y **vacía** antes de correr (el test registra "Alfa".."Delta"). Vaciarla con el
+`psql` local (PG17 nativo, no hay contenedor Docker):
+
 ```bash
-npx dotenv -e .env.test -- node -e "require('@/lib/db/testing')" 2>/dev/null || true
-# limpiar la BD de test:
-docker exec torneomus-pg psql -U postgres -d torneomus_test -c "TRUNCATE enfrentamientos, parejas RESTART IDENTITY CASCADE;"
+"/c/Program Files/PostgreSQL/17/bin/psql.exe" "postgresql://postgres:postgres@localhost:5432/torneomus_test" -c "TRUNCATE enfrentamientos, parejas RESTART IDENTITY CASCADE;"
 npm run build:e2e
 npm run e2e
 ```
+
+En Windows, `npx playwright install chromium` (sin `--with-deps`, que es solo Linux).
 
 Expected: 1 test PASS.
 
@@ -1537,6 +1542,10 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # build:e2e / start:e2e usan `dotenv -e .env.test`, que en CI no existe (gitignored).
+      - run: |
+          printf 'DATABASE_URL=%s\nADMIN_PASSWORD=%s\nAUTH_SECRET=%s\n' \
+            "$DATABASE_URL" "$ADMIN_PASSWORD" "$AUTH_SECRET" > .env.test
       - run: npx playwright install --with-deps chromium
       - run: npm run build:e2e
       - run: npm run e2e
